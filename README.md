@@ -8,9 +8,9 @@ Test OpenADR 3 libraries against established implementations including the OpenL
 | `openleadr` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) v0.2.7 | Rust | yes | no | `ghcr.io/otfabric/openadr-interop-openleadr` |
 | `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) 2.4.0 | Python | no | yes | `ghcr.io/otfabric/openadr-interop-elaadnl` |
 
-OpenADR 3.1.0, REST only: programs, events, reports, VENs and resources,
-with OAuth2 client credentials. Subscriptions, webhooks and MQTT are not
-covered yet. The stacks do not all do the same, and each image says what it
+OpenADR 3.1.0: programs, events, reports, VENs and resources, with OAuth2
+client credentials, and MQTT notifications from the reference VTN.
+Subscriptions and webhooks are not covered yet. The stacks do not all do the same, and each image says what it
 supports (`print-capabilities`); see [docs/CAPABILITIES.md](docs/CAPABILITIES.md).
 
 **Status: v0.1.0**, the first release, for linux/amd64 and linux/arm64. The

@@ -30,6 +30,7 @@ Schema: [schemas/capabilities.schema.json](../schemas/capabilities.schema.json).
 | `serverVenObjectType` | ven objects carry `objectType: "VEN"` |
 | `serverInvalidTokenIs401` | A bearer token the VTN did not issue is answered 401 |
 | `serverTargetsMustBeNamed` | A VEN sees a program or event that has targets only when its search names a target it was granted |
+| `serverMqtt` | The image runs an MQTT broker and the VTN publishes its notifications there (contract 1.1) |
 | `clientTokenDiscovery` | Without `--token-url` the client finds the token endpoint with `GET /auth/server` |
 | `clientReportDescriptorsInPrograms` | The client reads a program whose `payloadDescriptors` hold a report payload descriptor |
 
@@ -49,6 +50,7 @@ says which is which.
 | `serverVenObjectType` | no | |
 | `serverInvalidTokenIs401` | no | |
 | `serverTargetsMustBeNamed` | no | |
+| `serverMqtt` | yes | |
 | `clientTokenDiscovery` | | yes |
 | `clientReportDescriptorsInPrograms` | | no |
 

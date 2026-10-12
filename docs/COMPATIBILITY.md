@@ -32,7 +32,7 @@ server.
 
 | Server | Result |
 |--------|--------|
-| `openleadr` v0.2.7 | 17 of 21 scenarios pass; 4 known findings |
+| `openleadr` v0.2.7 | 20 of 24 scenarios pass; 4 known findings |
 
 A consumer that compares itself with a reference has to know where the
 reference and the specification part ways. That is what the findings are.
@@ -66,6 +66,34 @@ Definition asks for more: reads of objects with targets "must include
 matching targets in the query". Privacy holds either way: a VEN without the
 grant sees nothing. This is a reading of unclear text more than a fault, and
 the more convenient one for a VEN.
+
+**The MQTT topics it names for a ven are not the ones it publishes on.**
+`GET /notifiers/mqtt/topics/vens/{venID}/events` answers
+`events/vens/{venID}/create` (and so on, likewise for programs and
+resources), while the notifications for that VEN are published on
+`vens/{venID}/events/create`. A client that subscribes to what it was told
+hears nothing. The topics for all objects of a kind (`events/create`, ...)
+agree with what is published. Found with a subscriber on the reference
+broker; a fault of the implementation.
+
+**`GET /notifiers` does not follow the schema.** `WEBHOOK`, which the schema
+requires, is absent; the authentication method is written
+`OAUTH2BEARERTOKEN` where the schema has `OAUTH2_BEARER_TOKEN`; and there
+are members the schema does not have (`WEBSOCKET`, `PUSH-MQTT`). A client
+that reads the binding leniently is not affected.
+
+**The MQTT topic operations for all programs and all events are open to
+VENs**, where the document asks for `read_all`. OpenLEADR publishes there
+only what every client may see, so this is a different, and coherent,
+division of topics rather than a leak.
+
+**A VEN's resource goes on its own ven, whatever `venID` it names.** A
+`VEN_RESOURCE_REQUEST` that names another client's ven is answered 201, and
+the resource is created on the requester's ven: the `venID` of the request
+is ignored, and the answer carries the one that was used. Nothing of the
+other client is touched. A client that relies on the `venID` it sent, rather
+than the one in the answer, is misled; a VEN with several ven objects cannot
+choose between them (OpenLEADR allows one per client).
 
 **One ven object per client.** A second ven object for a client ID that has
 one is answered 409, whether the VEN or Business Logic asks. The

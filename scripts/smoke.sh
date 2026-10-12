@@ -73,6 +73,10 @@ if has_role server; then
     expect_exit 2 "server with an unknown flag" "${IMAGE}" server --frobnicate 1
     expect_exit 2 "server with a port that is not a number" "${IMAGE}" server --port http
     expect_exit 2 "server with a public URL that is not one" "${IMAGE}" server --public-url nowhere
+    if jq -e '.features.serverMqtt == true' <<<"${caps}" >/dev/null 2>&1; then
+        expect_exit 2 "server with the broker on the port of the API" "${IMAGE}" server --port 9000 --mqtt-port 9000
+        expect_exit 2 "server with a broker URL that is not one" "${IMAGE}" server --mqtt-public-url http://nowhere
+    fi
 else
     expect_exit 2 "server on an adapter without the role" "${IMAGE}" server
 fi
@@ -160,6 +164,13 @@ if has_role server; then
             and .fixture == "baseline" and (.address | type == "string") and .url == $url
             and (.tokenUrl | type == "string")' <<<"${first}" >/dev/null 2>&1
     then ok "ready event"; else fail "first stdout line is not the ready event: ${first}"; fi
+    if jq -e '.features.serverMqtt == true' <<<"${caps}" >/dev/null 2>&1; then
+        if jq -e '.mqttUrl | type == "string" and startswith("mqtt://")' <<<"${first}" >/dev/null 2>&1
+        then ok "ready event names the broker"; else fail "ready event without mqttUrl: ${first}"; fi
+        # The broker answers on its port, and turns away a client it does not know.
+        if docker exec "${name}" mosquitto_sub -h 127.0.0.1 -p 1883 -u nobody -P nothing -t '#' -C 1 -W 2 >/dev/null 2>&1
+        then fail "the broker let an unknown client subscribe to everything"; else ok "the broker refuses an unknown client"; fi
+    fi
     health=$(docker inspect --format '{{if .State.Health}}yes{{else}}no{{end}}' "${name}")
     if [[ "${health}" == yes ]]; then ok "image has a health check"; else fail "image has no health check"; fi
     user=$(docker exec "${name}" id -u 2>/dev/null)

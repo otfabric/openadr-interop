@@ -17,7 +17,8 @@ BUILD_INFO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 _FIXTURE_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 USAGE = """usage:
-  openadr-interop server [--fixture PATH] [--bind-address ADDR] [--port N] [--public-url URL] [--ready-file PATH]
+  openadr-interop server [--fixture PATH] [--bind-address ADDR] [--port N] [--public-url URL]
+                         [--mqtt-port N] [--mqtt-public-url URL] [--ready-file PATH]
   openadr-interop print-capabilities
   openadr-interop print-fixture [NAME]
   openadr-interop version
@@ -81,6 +82,9 @@ def capabilities() -> dict:
             # A VEN is shown the programs and events that carry a target it
             # was granted, whether or not its search names the target.
             "serverTargetsMustBeNamed": False,
+            # The image runs an MQTT broker next to the VTN, and the VTN
+            # publishes its notifications there.
+            "serverMqtt": True,
             "clientTokenDiscovery": False,
             "clientReportDescriptorsInPrograms": False,
         },
@@ -90,11 +94,20 @@ def capabilities() -> dict:
 
 
 def cmd_server(args: list[str]) -> int:
-    given = flags(args, {"fixture", "bind-address", "port", "public-url", "ready-file"})
-    port_text = given.get("port", "8080")
-    if not port_text.isdigit() or not 1 <= int(port_text) <= 65535:
-        raise UsageError(f"--port: {port_text!r} is not a port number")
-    port = int(port_text)
+    given = flags(args, {"fixture", "bind-address", "port", "public-url", "mqtt-port", "mqtt-public-url", "ready-file"})
+
+    def port_of(flag: str, default: str) -> int:
+        text = given.get(flag, default)
+        if not text.isdigit() or not 1 <= int(text) <= 65535:
+            raise UsageError(f"--{flag}: {text!r} is not a port number")
+        return int(text)
+
+    port, mqtt_port = port_of("port", "8080"), port_of("mqtt-port", "1883")
+    if port == mqtt_port:
+        raise UsageError("--port and --mqtt-port are the same")
+    mqtt_url = given.get("mqtt-public-url", f"mqtt://{socket.gethostname()}:{mqtt_port}")
+    if not re.match(r"^mqtt://[^/\s:]+:[0-9]+$", mqtt_url):
+        raise UsageError(f"--mqtt-public-url: {mqtt_url!r} is not an mqtt://host:port URL")
     # The OpenLEADR VTN always listens on every address.
     if given.get("bind-address", "0.0.0.0") != "0.0.0.0":
         raise UsageError("--bind-address: this adapter listens on 0.0.0.0 only")
@@ -110,7 +123,7 @@ def cmd_server(args: list[str]) -> int:
 
     from .server import serve  # pylint: disable=import-outside-toplevel
 
-    return serve(fixture, port, public_url, given.get("ready-file", "/run/openadr-interop/ready"))
+    return serve(fixture, port, public_url, mqtt_port, mqtt_url, given.get("ready-file", "/run/openadr-interop/ready"))
 
 
 def cmd_print_fixture(args: list[str]) -> int:

@@ -28,6 +28,11 @@ release's `manifest.json`.
 2. Report the findings of docs/COMPATIBILITY.md upstream (OpenLEADR,
    ElaadNL) and the two specification faults to the specification's authors.
 
+## v0.2.0 (unreleased)
+
+Done: an MQTT broker in the `openleadr` image, and authorization scenarios
+in the conformance suite.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:

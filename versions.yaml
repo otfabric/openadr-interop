@@ -3,8 +3,8 @@
 # The Dockerfiles are the source of truth for a build:
 # scripts/check-versions.sh fails when this file disagrees with them.
 
-interop_version: "0.1.0"
-contract_version: "1.0"        # docs/CONTAINER_CONTRACT.md, schemaVersion of every document
+interop_version: "0.2.0"
+contract_version: "1.1"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
 fixture_schema: "1.0"          # fixtures/schema/openadr-fixture.schema.json
 
 protocol:
@@ -36,6 +36,7 @@ implementations:
     bundled:
       postgresql: "17 (Alpine 3.22 package postgresql17, PostgreSQL licence)"   # the VTN's database, inside the image
       argon2: "Alpine 3.22 package argon2 (CC0-1.0 OR Apache-2.0)"              # hashes the fixture's client secrets
+      mosquitto: "2.0 (Alpine 3.22 package mosquitto, EPL-2.0 OR BSD-3-Clause)"  # the MQTT broker the VTN publishes to
     base_images:
       rust: "rust:1.94-alpine@sha256:77237dd363a0b127bb5ef532c2d64c0deb380b738e43a9c4bdac73398d6d0a08"
       alpine: "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8"

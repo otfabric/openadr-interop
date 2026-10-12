@@ -1,6 +1,6 @@
 # Container contract
 
-Version: **1.0** (`contract_version` in [versions.yaml](../versions.yaml))
+Version: **1.1** (`contract_version` in [versions.yaml](../versions.yaml))
 
 Every adapter image exposes the same commands, flags, JSON documents and exit
 codes. Consumers depend on this document, not on any adapter's source. A
@@ -11,6 +11,7 @@ and changes only with the major version.
 | Version | Change |
 |---------|--------|
 | 1.0 | First release |
+| 1.1 | A server may run an MQTT broker (feature `serverMqtt`): `--mqtt-port`, `--mqtt-public-url`, `mqttUrl` in the `ready` event, 1883/tcp |
 
 An adapter has the server role, the client role, or both. What an image
 lacks it says in [`print-capabilities`](#print-capabilities); a command or
@@ -38,7 +39,7 @@ What a *VTN* holds when it is ready is defined by its fixture: see
 | Entrypoint | `openadr-interop` (`/usr/local/bin/openadr-interop`) |
 | Default command | `server`; `print-capabilities` for an image without the server role |
 | Protocol | OpenADR 3.1.0, REST over plain HTTP |
-| Port | 8080/tcp |
+| Port | 8080/tcp; 1883/tcp for the MQTT broker of a server with the feature `serverMqtt` |
 | User | non-root, uid 10001 |
 | Fixtures | `/fixtures/<name>/fixture.json` (baked in; mount over `/fixtures` to replace) |
 | Readiness file | `/run/openadr-interop/ready` |
@@ -68,6 +69,8 @@ Runs a VTN that serves one fixture until it receives SIGTERM or SIGINT.
 | `--bind-address ADDR` | `0.0.0.0` | Listen address. An adapter whose VTN cannot choose accepts `0.0.0.0` only |
 | `--port N` | 8080 | Listen port |
 | `--public-url URL` | `http://<container hostname>:<port>` | The URL of the API as clients reach it |
+| `--mqtt-port N` | 1883 | Listen port of the MQTT broker. Only with the feature `serverMqtt` |
+| `--mqtt-public-url URL` | `mqtt://<container hostname>:<mqtt port>` | The broker as clients reach it, `mqtt://host:port`. Only with the feature `serverMqtt` |
 | `--ready-file PATH` | `/run/openadr-interop/ready` | Readiness file |
 
 The API is served at the root of `--public-url`: `<url>/programs`,
@@ -97,13 +100,36 @@ Lifecycle:
 The state of the VTN lives as long as the process: restart the container to
 return to the fixture.
 
+### The MQTT broker
+
+A server with the feature `serverMqtt` runs an MQTT broker in its container
+and publishes its notifications there. `GET /notifiers` tells clients where
+the broker is, and that answer is `--mqtt-public-url`. The VTN itself
+connects to the broker under the same URL, so **the broker has to be
+reachable under one URL from inside the container and from the client**: on
+a Docker network that is the default; published on a host port, give the
+broker the same port number inside and out
+(`-p 127.0.0.1:18883:18883 ... --mqtt-port 18883 --mqtt-public-url mqtt://127.0.0.1:18883`).
+
+The broker knows the clients of the fixture: **the user name is the client
+ID and the password is the client secret**. (An implementation may announce
+OAuth2 bearer token authentication, as OpenLEADR does; a stock broker cannot
+check a token, and the reference broker does not try.) A Business Logic
+client may read every topic. A VEN client may read the topics of programs,
+events and vens, which is more than a deployment would allow: the broker is
+there to carry what the VTN publishes, not to demonstrate access control.
+No client may publish.
+
+Which topics exist is the VTN's business and is found with its topic
+operations; see [COMPATIBILITY.md](COMPATIBILITY.md) for what the references do.
+
 ### Server events
 
 One JSON object per line on stdout.
 
 | `event` | Other fields | When |
 |---------|--------------|------|
-| `ready` | `adapter`, `address` (`ip:port`), `url`, `tokenUrl`, `fixture` | Once, when the VTN serves the fixture |
+| `ready` | `adapter`, `address` (`ip:port`), `url`, `tokenUrl`, `fixture`; `mqttUrl` with the feature `serverMqtt` | Once, when the VTN serves the fixture |
 | `stopped` | | Once, after a clean stop |
 
 ## `client`

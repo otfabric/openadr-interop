@@ -120,6 +120,7 @@ def capabilities() -> dict:
             "serverVenObjectType": False,
             "serverInvalidTokenIs401": False,
             "serverTargetsMustBeNamed": False,
+            "serverMqtt": False,
             # Without --token-url the library asks the VTN: GET /auth/server.
             "clientTokenDiscovery": True,
             # The library reads a program whose payloadDescriptors hold a

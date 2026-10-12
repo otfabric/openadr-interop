@@ -93,6 +93,7 @@
         "serverVenObjectType",
         "serverInvalidTokenIs401",
         "serverTargetsMustBeNamed",
+        "serverMqtt",
         "clientTokenDiscovery",
         "clientReportDescriptorsInPrograms"
       ],

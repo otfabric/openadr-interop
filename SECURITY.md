@@ -29,6 +29,7 @@ The server images run **VTNs over plain HTTP whose OAuth2 client secrets are pub
 - `compose.yaml` and the `run-*` Makefile targets publish ports on `127.0.0.1` only. Keep it that way; the self-tests use private Docker networks and publish nothing
 - There is no TLS. The client adapter turns off its library's HTTPS requirement when it is given an `http://` URL, which a deployment must never do
 - The `openleadr` image runs a PostgreSQL inside the container, on loopback, without a password; its data does not outlive the container
+- The `openleadr` image also runs an MQTT broker, without TLS, whose accounts are the fixture's client IDs and secrets and whose access rules are wider than a deployment's would be. It carries test notifications; publish its port on loopback only
 
 ### Reports
 

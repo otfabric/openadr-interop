@@ -63,7 +63,7 @@ FROM ${BASE_REGISTRY}/alpine:3.22@${ALPINE_DIGEST} AS runtime
 ARG ADAPTER_VERSION=dev
 
 RUN set -eu; \
-    apk add --no-cache libgcc libssl3 postgresql17 postgresql17-client python3 argon2; \
+    apk add --no-cache libgcc libssl3 postgresql17 postgresql17-client python3 argon2 mosquitto; \
     adduser -u 10001 -D -H -s /sbin/nologin interop; \
     mkdir -p /run/openadr-interop /licenses/alpine; \
     chown interop /run/openadr-interop; \
@@ -81,18 +81,18 @@ COPY fixtures /fixtures
 # The runtime user cannot write byte code next to the sources: compile now.
 RUN python3 -m compileall -q /opt/openadr-interop && chmod 0755 /usr/local/bin/openadr-interop
 
-ENV PATH=/usr/libexec/postgresql17:/usr/local/bin:/usr/bin:/bin \
+ENV PATH=/usr/libexec/postgresql17:/usr/local/bin:/usr/sbin:/usr/bin:/bin \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 LABEL org.opencontainers.image.title="openadr-interop-openleadr" \
       org.opencontainers.image.description="OpenADR 3.1 reference VTN built on OpenLEADR openleadr-rs" \
       org.opencontainers.image.source="https://github.com/otfabric/openadr-interop" \
-      org.opencontainers.image.licenses="MIT AND (Apache-2.0 OR MIT) AND PostgreSQL" \
+      org.opencontainers.image.licenses="MIT AND (Apache-2.0 OR MIT) AND PostgreSQL AND (EPL-2.0 OR BSD-3-Clause)" \
       org.opencontainers.image.version="${ADAPTER_VERSION}"
 
 USER interop
-EXPOSE 8080
+EXPOSE 8080 1883
 
 HEALTHCHECK --interval=2s --timeout=2s --start-period=30s --retries=15 \
   CMD test -f /run/openadr-interop/ready

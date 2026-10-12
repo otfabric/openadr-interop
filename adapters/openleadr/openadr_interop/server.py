@@ -1,11 +1,15 @@
 # SPDX-License-Identifier: MIT
-"""The reference VTN: OpenLEADR with a private PostgreSQL, serving a fixture.
+"""The reference VTN: OpenLEADR with a private PostgreSQL and an MQTT broker.
 
 OpenLEADR keeps its state in PostgreSQL and takes its OAuth clients from the
 database. To be one self-contained image like the other reference servers,
 this module runs a throw-away PostgreSQL next to the VTN, registers the
 clients of the fixture, and creates the fixture's objects through the VTN's
 own REST API, as its Business Logic client. Nothing survives the container.
+
+OpenLEADR notifies by MQTT and needs a broker for it: a Mosquitto runs in
+the image too, with one account for the VTN and one for each client of the
+fixture.
 """
 
 from __future__ import annotations
@@ -73,9 +77,13 @@ def argon2id(secret: str) -> str:
 class Vtn:
     """PostgreSQL and the VTN, started together and stopped together."""
 
-    def __init__(self, port: int, public_url: str) -> None:
+    def __init__(self, port: int, public_url: str, mqtt_port: int, mqtt_url: str) -> None:
         self.port = port
         self.public_url = public_url
+        self.mqtt_port = mqtt_port
+        self.mqtt_url = mqtt_url
+        self.mqtt_password = secrets.token_hex(16)
+        self.broker: subprocess.Popen | None = None
         self.local = f"http://127.0.0.1:{port}"
         self.workdir = tempfile.mkdtemp(prefix="openadr-interop-")
         self.pg_port = free_port()
@@ -106,6 +114,54 @@ class Vtn:
         run(["psql", "-q", "-v", "ON_ERROR_STOP=1", "-h", "127.0.0.1", "-p", str(self.pg_port), "-U", "openadr",
              "-d", "openadr", "-c", statement])
 
+    # -- the MQTT broker
+
+    def start_broker(self, fixture: dict) -> None:
+        """Mosquitto, with an account for the VTN and one per fixture client.
+
+        OpenLEADR announces OAuth2 bearer token authentication with the
+        client ID as the user name. Mosquitto cannot check a token without a
+        plugin, so the broker of this image takes the client secret as the
+        password instead: docs/CONTAINER_CONTRACT.md says so. A Business
+        Logic client may read every topic; a VEN client the topics of
+        programs, events and vens, which is wider than a deployment would
+        allow and enough to receive what the VTN publishes for it.
+        """
+        passwords, acl, conf = (os.path.join(self.workdir, n) for n in ("mqtt-passwd", "mqtt-acl", "mosquitto.conf"))
+        accounts = [("openadr-interop-vtn", self.mqtt_password)]
+        rules = ["user openadr-interop-vtn", "topic readwrite #", ""]
+        for client in fixture["clients"]:
+            accounts.append((client["clientId"], client["clientSecret"]))
+            rules.append(f"user {client['clientId']}")
+            if client["role"] == "bl":
+                rules.append("topic read #")
+            else:
+                rules += ["topic read programs/#", "topic read events/#", "topic read vens/#"]
+            rules.append("")
+        open(passwords, "w", encoding="utf-8").close()
+        os.chmod(passwords, 0o600)
+        for user, password in accounts:
+            run(["mosquitto_passwd", "-b", passwords, user, password])
+        with open(acl, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(rules))
+        os.chmod(acl, 0o600)
+        with open(conf, "w", encoding="utf-8") as handle:
+            handle.write(f"listener {self.mqtt_port} 0.0.0.0\nallow_anonymous false\npassword_file {passwords}\n"
+                         f"acl_file {acl}\npersistence false\nlog_dest stderr\nlog_type error\nlog_type warning\n")
+        self.broker = subprocess.Popen(["mosquitto", "-c", conf], stdout=sys.stderr, stderr=sys.stderr)  # pylint: disable=consider-using-with
+        deadline = time.monotonic() + START_TIMEOUT
+        while True:
+            if self.broker.poll() is not None:
+                raise StartError(f"the MQTT broker exited with {self.broker.returncode}; is port {self.mqtt_port} in use?")
+            try:
+                with socket.create_connection(("127.0.0.1", self.mqtt_port), timeout=1):
+                    return
+            except OSError:
+                pass
+            if time.monotonic() > deadline:
+                raise StartError("the MQTT broker did not listen in time")
+            time.sleep(0.1)
+
     # -- the VTN
 
     def start_vtn(self) -> None:
@@ -116,6 +172,11 @@ class Vtn:
             # What GET /auth/server tells clients.
             "OAUTH_TOKEN_URL": f"{self.public_url}/auth/token",
             "OAUTH_BASE64_SECRET": base64.b64encode(secrets.token_bytes(48)).decode(),
+            # The broker as the VTN reaches it, which is also what
+            # GET /notifiers tells clients: one URL has to serve both.
+            "MQTT_URL": self.mqtt_url,
+            "MQTT_USERNAME": "openadr-interop-vtn",
+            "MQTT_PASSWORD": self.mqtt_password,
             "RUST_LOG": os.environ.get("RUST_LOG", "warn"),
         }
         self.vtn = subprocess.Popen([VTN_BINARY], env=env, stdout=sys.stderr, stderr=sys.stderr)  # pylint: disable=consider-using-with
@@ -193,7 +254,7 @@ class Vtn:
     # -- shutdown
 
     def stop(self) -> None:
-        for process, stop_signal in ((self.vtn, signal.SIGTERM), (self.postgres, signal.SIGINT)):
+        for process, stop_signal in ((self.vtn, signal.SIGTERM), (self.broker, signal.SIGTERM), (self.postgres, signal.SIGINT)):
             if process is None or process.poll() is not None:
                 continue
             # SIGINT is PostgreSQL's fast shutdown.
@@ -206,7 +267,7 @@ class Vtn:
         shutil.rmtree(self.workdir, ignore_errors=True)
 
 
-def serve(fixture: dict, port: int, public_url: str, ready_file: str) -> int:
+def serve(fixture: dict, port: int, public_url: str, mqtt_port: int, mqtt_url: str, ready_file: str) -> int:
     stopping = False
 
     def on_signal(_signum, _frame) -> None:
@@ -216,9 +277,10 @@ def serve(fixture: dict, port: int, public_url: str, ready_file: str) -> int:
     signal.signal(signal.SIGTERM, on_signal)
     signal.signal(signal.SIGINT, on_signal)
 
-    vtn = Vtn(port, public_url)
+    vtn = Vtn(port, public_url, mqtt_port, mqtt_url)
     try:
         vtn.start_postgres()
+        vtn.start_broker(fixture)
         vtn.start_vtn()
         vtn.load(fixture)
         os.makedirs(os.path.dirname(ready_file), exist_ok=True)
@@ -230,11 +292,11 @@ def serve(fixture: dict, port: int, public_url: str, ready_file: str) -> int:
         return 1
 
     emit({"event": "ready", "adapter": ADAPTER, "address": f"0.0.0.0:{port}", "url": public_url,
-          "tokenUrl": f"{public_url}/auth/token", "fixture": fixture["name"]})
+          "tokenUrl": f"{public_url}/auth/token", "mqttUrl": mqtt_url, "fixture": fixture["name"]})
     code = 0
     while not stopping:
-        if vtn.vtn.poll() is not None or vtn.postgres.poll() is not None:
-            log("the VTN or its database stopped unexpectedly")
+        if vtn.vtn.poll() is not None or vtn.postgres.poll() is not None or vtn.broker.poll() is not None:
+            log("the VTN, its database or its broker stopped unexpectedly")
             code = 1
             break
         time.sleep(0.2)

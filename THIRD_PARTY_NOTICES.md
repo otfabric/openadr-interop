@@ -23,6 +23,7 @@ Every image has the licence texts of what it contains under `/licenses`.
 | PostgreSQL 17 (Alpine package), the VTN's database | PostgreSQL licence | Alpine's package database; versions in `/licenses/alpine/PACKAGES.txt` |
 | Python 3 (Alpine package), runs the adapter | PSF-2.0 | as above |
 | argon2 (Alpine package), hashes the fixture's client secrets | CC0-1.0 OR Apache-2.0 | as above |
+| Eclipse Mosquitto 2.0 (Alpine package), the MQTT broker | EPL-2.0 OR BSD-3-Clause (EDL-1.0) | as above |
 | Alpine Linux base image, musl, OpenSSL and the rest of its packages | Various; see Alpine's package database | as above |
 | The adapter | MIT | `/licenses/openadr-interop/LICENSE` |
 

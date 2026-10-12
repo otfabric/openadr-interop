@@ -21,6 +21,30 @@ The `Upstream candidates` workflow runs every Monday and on demand. For each ada
 
 ---
 
+## Unreleased (planned v0.2.0)
+
+## Summary
+
+MQTT in the OpenLEADR reference server, and authorization scenarios in the
+conformance suite. Contract 1.1: an addition, nothing a consumer of 1.0 has
+to change.
+
+## Changes
+
+### Added
+
+- **An MQTT broker in the `openleadr` image** (Mosquitto 2.0), to which the OpenLEADR VTN publishes its notifications: `--mqtt-port`, `--mqtt-public-url`, `mqttUrl` in the `ready` event, the feature `serverMqtt`. The broker knows the fixture's clients by client ID and secret.
+- **Conformance scenarios AUTHZ-001 to AUTHZ-003**: every core operation without a token, a VEN on another VEN's vens and resources, and a VEN trying to grant itself targets. 24 scenarios in all.
+
+### Upstream notes
+
+Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
+- OpenLEADR v0.2.7 names per-VEN MQTT topics in its topic operations that differ from the ones it publishes on, and its `GET /notifiers` does not follow the schema.
+- OpenLEADR v0.2.7 creates a VEN's resource on the VEN's own ven whatever `venID` the request names.
+
+---
+
 ## v0.1.0 (2026-10-12)
 
 ## Summary

@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/otfabric/openadr-interop/conformance/internal/probe"
@@ -19,7 +20,7 @@ import (
 // All returns every scenario, in the order they run.
 func All() []suite.Scenario {
 	var all []suite.Scenario
-	for _, group := range [][]suite.Scenario{auth(), programs(), events(), reports(), vens(), targeting(), workflow()} {
+	for _, group := range [][]suite.Scenario{auth(), authorization(), programs(), events(), reports(), vens(), targeting(), workflow()} {
 		all = append(all, group...)
 	}
 	return all
@@ -172,6 +173,198 @@ func auth() []suite.Scenario {
 				t.ExpectProblem(t.Call(t.VEN, "POST", "/events", object{"programID": id}), 403, "createEvent")
 				// And nothing happened.
 				t.Expect(t.Call(t.BL, "GET", "/programs/"+id, nil), 200, "searchProgramByProgramId")
+			},
+		},
+	}
+}
+
+// --- authorization
+
+// operation is a request to one of the 25 operations on programs, events,
+// reports, vens and resources, with the objects it needs named by role.
+type operation struct {
+	id, method, path string
+	body             func(ids map[string]string) any
+}
+
+// coreOperations lists the 25 operations; %s in a path is the ID of the
+// object of that collection in ids.
+func coreOperations() []operation {
+	program := func(map[string]string) any { return object{"programName": "authz-changed"} }
+	event := func(ids map[string]string) any { return object{"programID": ids["programs"]} }
+	rep := func(ids map[string]string) any { return report(ids["events"], "authz") }
+	ven := func(map[string]string) any {
+		return object{"objectType": "VEN_VEN_REQUEST", "venName": "authz-changed"}
+	}
+	resource := func(ids map[string]string) any {
+		return object{"objectType": "VEN_RESOURCE_REQUEST", "resourceName": "authz-changed", "venID": ids["vens"]}
+	}
+	var ops []operation
+	for _, c := range []struct {
+		name, plural, search, read, create, update, remove string
+		body                                               func(map[string]string) any
+	}{
+		{"program", "programs", "searchAllPrograms", "searchProgramByProgramId", "createProgram", "updateProgram", "deleteProgram", program},
+		{"event", "events", "searchAllEvents", "searchEventsByID", "createEvent", "updateEvent", "deleteEvent", event},
+		{"report", "reports", "searchAllReports", "searchReportsByReportID", "createReport", "updateReport", "deleteReport", rep},
+		{"ven", "vens", "searchVens", "searchVenByID", "createVen", "updateVen", "deleteVen", ven},
+		{"resource", "resources", "searchVenResources", "searchVenResourceByID", "createResource", "updateVenResource", "deleteVenResource", resource},
+	} {
+		ops = append(ops,
+			operation{c.search, "GET", "/" + c.plural, nil},
+			operation{c.read, "GET", "/" + c.plural + "/%s", nil},
+			operation{c.create, "POST", "/" + c.plural, c.body},
+			operation{c.update, "PUT", "/" + c.plural + "/%s", c.body},
+			operation{c.remove, "DELETE", "/" + c.plural + "/%s", nil},
+		)
+	}
+	return ops
+}
+
+// send performs an operation as c.
+func send(t *suite.T, c *probe.Client, op operation, ids map[string]string) *probe.Exchange {
+	path := strings.Replace(op.path, "%s", ids[strings.Split(op.path, "/")[1]], 1)
+	var body any
+	if op.body != nil {
+		body = op.body(ids)
+	}
+	return t.Call(c, op.method, path, body)
+}
+
+// oneOfEach creates a program, an event, and as the VEN a report, a ven and
+// a resource, and returns their IDs by collection.
+func oneOfEach(t *suite.T) map[string]string {
+	ids := map[string]string{}
+	ids["programs"] = str(t, createProgram(t, "authz", nil), "id")
+	ids["events"] = str(t, createEvent(t, ids["programs"], nil), "id")
+	ids["reports"] = str(t, create(t, t.VEN, "reports", "createReport", report(ids["events"], t.Name("authz"))), "id")
+	// Not through create: what a ven object looks like is VEN-001's
+	// business, and must not decide the outcome of these scenarios.
+	ven := t.Call(t.VEN, "POST", "/vens", object{"objectType": "VEN_VEN_REQUEST", "venName": t.Name("authz-ven")})
+	if ven.Status != 201 {
+		t.Fatalf("the VEN could not register a ven object: %s", ven)
+	}
+	ids["vens"] = str(t, t.Object(ven.JSON()), "id")
+	t.Delete(t.VEN, "/vens/"+ids["vens"])
+	ids["resources"] = str(t, create(t, t.VEN, "resources", "createResource",
+		object{"objectType": "VEN_RESOURCE_REQUEST", "resourceName": "authz-resource", "venID": ids["vens"]}), "id")
+	return ids
+}
+
+func authorization() []suite.Scenario {
+	return []suite.Scenario{
+		{
+			ID:    "AUTHZ-001",
+			Title: "Every operation on programs, events, reports, vens and resources needs a token (401)",
+			Refs:  []string{"openadr3.yaml#searchAllPrograms", "openadr3.yaml#createReport", "openadr3.yaml#deleteVenResource", "Definition: OAuth 2.0 client credential flow"},
+			Run: func(t *suite.T) {
+				ids := oneOfEach(t)
+				for _, op := range coreOperations() {
+					ex := send(t, t.Anonymous, op, ids)
+					if ex.Status != 401 {
+						t.Errorf("%s %s without a token (%s): status %d, want 401; body: %s", op.method, ex.URL, op.id, ex.Status, ex.ResponseBody)
+					}
+				}
+				// And nothing was changed or removed by any of them.
+				for collection, id := range ids {
+					if ex := t.Call(t.BL, "GET", "/"+collection+"/"+id, nil); ex.Status != 200 {
+						t.Errorf("after the anonymous requests, GET /%s/%s as Business Logic: %d", collection, id, ex.Status)
+					}
+				}
+			},
+		},
+		{
+			ID:    "AUTHZ-002",
+			Title: "A VEN reads, changes and deletes only its own vens and resources",
+			Refs: []string{"openadr3.yaml#searchVenByID", "openadr3.yaml#updateVen", "openadr3.yaml#deleteVen", "openadr3.yaml#searchVenResourceByID",
+				"openadr3.yaml#updateVenResource", "openadr3.yaml#deleteVenResource", "openadr3.yaml#createResource", "Definition: VEN created object privacy"},
+			Run: func(t *suite.T) {
+				if t.VEN2 == nil {
+					t.Skipf("the run has no second VEN")
+				}
+				ids := oneOfEach(t)
+				// The Definition asks for an empty set in searches and leaves
+				// the status of a request by ID open: 403 and 404 both keep
+				// the object private.
+				for _, op := range coreOperations() {
+					collection := strings.Split(op.path, "/")[1]
+					if collection != "vens" && collection != "resources" || !strings.Contains(op.path, "%s") {
+						continue
+					}
+					if ex := send(t, t.VEN2, op, ids); ex.Status != 403 && ex.Status != 404 {
+						t.Errorf("%s %s by another VEN (%s): status %d, want 403 or 404; body: %s", op.method, ex.URL, op.id, ex.Status, ex.ResponseBody)
+					}
+				}
+				// Another VEN cannot hang a resource on this ven either. A VTN
+				// may refuse the request, or create the resource on the
+				// requester's own ven, whatever venID the request names: what
+				// counts is where the resource ends up.
+				ex := t.Call(t.VEN2, "POST", "/resources", object{"objectType": "VEN_RESOURCE_REQUEST", "resourceName": "intruder", "venID": ids["vens"]})
+				if ex.Status == 201 {
+					created := t.Object(ex.JSON())
+					t.Delete(t.BL, "/resources/"+str(t, created, "id"))
+					if created["venID"] == ids["vens"] {
+						t.Errorf("another VEN created a resource on this VEN's ven object: %v", created)
+					}
+				}
+				onVEN, _ := t.Call(t.BL, "GET", "/resources?venID="+ids["vens"], nil).JSON().([]any)
+				if len(onVEN) != 1 {
+					t.Errorf("the ven has %d resources after another VEN tried to add one, want the one its owner created", len(onVEN))
+				}
+				// What the owner has is as it was.
+				ven, _ := t.Call(t.VEN, "GET", "/vens/"+ids["vens"], nil).JSON().(object)
+				if ven["venName"] != t.Name("authz-ven") {
+					t.Errorf("the ven was changed or removed by another VEN: %v", ven)
+				}
+				res := t.Object(t.Expect(t.Call(t.VEN, "GET", "/resources/"+ids["resources"], nil), 200, "searchVenResourceByID"))
+				if res["resourceName"] != "authz-resource" {
+					t.Errorf("the resource was changed by another VEN: %v", res)
+				}
+			},
+		},
+		{
+			ID:    "AUTHZ-003",
+			Title: "A VEN cannot grant itself targets",
+			Refs:  []string{"openadr3.yaml#createVen", "openadr3.yaml#updateVen", "openadr3.yaml#searchAllPrograms", "Definition: program and event objects - targeting"},
+			Run: func(t *suite.T) {
+				// "Only BL clients may write targets to ven and resource objects."
+				target := t.Name("authz-003")
+				programID := str(t, createProgram(t, "authz-003", object{"targets": []string{target}}), "id")
+				sees := func() bool {
+					list := t.List(t.Expect(t.Call(t.VEN, "GET", "/programs?targets="+target, nil), 200, "searchAllPrograms"))
+					return contains(ids(t, list), programID)
+				}
+				// Whatever the VTN makes of these requests, the VEN must not
+				// end up seeing the program.
+				var venID string
+				for _, body := range []object{
+					{"objectType": "VEN_VEN_REQUEST", "venName": t.Name("authz-003-ven"), "targets": []string{target}},
+					{"objectType": "BL_VEN_REQUEST", "venName": t.Name("authz-003-ven"), "clientID": t.VENClientID, "targets": []string{target}},
+				} {
+					ex := t.Call(t.VEN, "POST", "/vens", body)
+					if ex.Status == 201 && venID == "" {
+						venID = str(t, t.Object(ex.JSON()), "id")
+						t.Delete(t.BL, "/vens/"+venID)
+					}
+					if sees() {
+						t.Fatalf("after POST /vens as a VEN with %v and targets, the VEN sees a program targeted at them", body["objectType"])
+					}
+				}
+				if venID == "" {
+					t.Skipf("the VEN could not register a ven object to try an update on")
+				}
+				t.Call(t.VEN, "PUT", "/vens/"+venID, object{"objectType": "VEN_VEN_REQUEST", "venName": t.Name("authz-003-ven"), "targets": []string{target}})
+				if sees() {
+					t.Errorf("after PUT /vens as a VEN with targets, the VEN sees a program targeted at them")
+				}
+				// The control: when Business Logic grants the target, it does.
+				if t.VENClientID == "" {
+					return
+				}
+				grant := t.Call(t.BL, "PUT", "/vens/"+venID, object{"objectType": "BL_VEN_REQUEST", "venName": t.Name("authz-003-ven"), "clientID": t.VENClientID, "targets": []string{target}})
+				if grant.Status == 200 && !sees() {
+					t.Errorf("after Business Logic granted the target, the VEN still does not see the program when naming it")
+				}
 			},
 		},
 	}
