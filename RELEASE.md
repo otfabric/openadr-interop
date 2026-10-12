@@ -21,7 +21,7 @@ The `Upstream candidates` workflow runs every Monday and on demand. For each ada
 
 ---
 
-## Unreleased (planned v0.1.0)
+## v0.1.0 (2026-10-12)
 
 ## Summary
 

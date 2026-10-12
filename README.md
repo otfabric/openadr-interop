@@ -13,9 +13,10 @@ with OAuth2 client credentials. Subscriptions, webhooks and MQTT are not
 covered yet. The stacks do not all do the same, and each image says what it
 supports (`print-capabilities`); see [docs/CAPABILITIES.md](docs/CAPABILITIES.md).
 
-**Status: not released.** Until `v0.1.0` is tagged nothing is published to
-the registry: build the images with `make images`. See [PLAN.md](PLAN.md)
-and [RELEASE.md](RELEASE.md).
+**Status: v0.1.0**, the first release, for linux/amd64 and linux/arm64. The
+digests of its images are in the `manifest.json` of the
+[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.1.0).
+See [PLAN.md](PLAN.md) and [RELEASE.md](RELEASE.md).
 
 **Docs:** [docs/CONTAINER_CONTRACT.md](docs/CONTAINER_CONTRACT.md) (commands, JSON documents, exit codes) · [docs/FIXTURES.md](docs/FIXTURES.md) (what a reference VTN holds) · [docs/CAPABILITIES.md](docs/CAPABILITIES.md) · [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) (pins, cross-stack matrix, findings) · [conformance/](conformance/README.md) (the specification-driven test suite) · [REQUIREMENTS.md](REQUIREMENTS.md) · [PLAN.md](PLAN.md) · [RELEASE.md](RELEASE.md)
 

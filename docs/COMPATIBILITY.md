@@ -1,9 +1,8 @@
 # Compatibility
 
 What is pinned, what the reference stacks do with each other, and what was
-found on the way. Everything here was observed with the versions named; the
-runs were made by hand on linux/arm64 (Docker Desktop on macOS). CI does not
-produce them yet.
+found on the way. Everything here was observed with the versions named, and
+is what CI and the release workflow reproduce on linux/amd64 and linux/arm64.
 
 ## Pinned upstreams
 
@@ -110,6 +109,5 @@ a consumer cannot use this client to test that its VTN refuses that.
 
 ## Platforms
 
-Built and tested on linux/arm64. The base images are multi-arch and nothing
-in the adapters is architecture specific, but linux/amd64 has not been built
-yet.
+Built and self-tested natively on linux/amd64 and linux/arm64, in CI and for
+every release.

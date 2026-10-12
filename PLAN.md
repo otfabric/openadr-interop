@@ -9,7 +9,7 @@
 - Self-tests: contract smoke test, cross-stack cases and workflow,
   conformance suite against the reference server.
 
-Status: **built and passing locally on linux/arm64; nothing published yet.**
+Status: **released as v0.1.0.** CI passes on linux/amd64 and linux/arm64.
 
 | Check | Result |
 |---|---|
@@ -17,15 +17,15 @@ Status: **built and passing locally on linux/arm64; nothing published yet.**
 | `make interop` | elaadnl → openleadr: 59 pass, 2 skipped on capabilities |
 | `make conformance` | openleadr: 17 of 21, 4 known findings |
 
-## Before v0.1.0
+## After v0.1.0
 
-1. A green CI run on both architectures. linux/amd64 has not been built
-   anywhere else yet.
-2. Tag `v0.1.0`: the release workflow builds, self-tests and publishes the
-   images and writes `manifest.json`. It has not run yet, and neither has
-   the upstream-candidate workflow; the scripts both use were tried locally.
-3. Pin the published digests in the consumers.
-4. Report the findings of docs/COMPATIBILITY.md upstream (OpenLEADR,
+v0.1.0 is released: the images are built and self-tested natively on
+linux/amd64 and linux/arm64 and published, with the digests in the
+release's `manifest.json`.
+
+1. Make the two packages on GHCR public, like those of the other interop
+   repositories. They were created private, and a consumer cannot pull them.
+2. Report the findings of docs/COMPATIBILITY.md upstream (OpenLEADR,
    ElaadNL) and the two specification faults to the specification's authors.
 
 ## Later
