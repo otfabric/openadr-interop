@@ -1,0 +1,61 @@
+# Machine-readable version manifest for openadr-interop.
+# Upstream pins and base image digests are release inputs; nothing floats.
+# The Dockerfiles are the source of truth for a build:
+# scripts/check-versions.sh fails when this file disagrees with them.
+
+interop_version: "0.1.0"
+contract_version: "1.0"        # docs/CONTAINER_CONTRACT.md, schemaVersion of every document
+fixture_schema: "1.0"          # fixtures/schema/openadr-fixture.schema.json
+
+protocol:
+  name: "OpenADR 3"
+  versions: ["3.1.0"]
+  default_port: 8080           # inside the images; plain HTTP, for test networks only
+
+# The OpenAPI document the conformance suite asserts against (conformance/spec).
+specification:
+  "3.1.0":
+    document: conformance/spec/3.1.0/openadr3.yaml
+    sha256: "135bc74af2f733338b55afa95df3cb3a1185867e8e41a7d16cdb2dbfaeb3b475"
+    source: "https://github.com/grid-coordination/openadr3-specification"
+    source_revision: "ca9696d324b8ab6a41b34aaefa48fc98c0a775f5"
+    upstream_revision: "ddd2cc58589bdc31ba1dd19fbdf90ed7e10b31dc"   # oadr3-org/specification, document 20250807-X
+
+implementations:
+  openleadr:
+    priority: P0
+    status: unpublished          # built and self-tested locally; no image is published yet
+    upstream: "OpenLEADR openleadr-rs"
+    repository: "https://github.com/OpenLEADR/openleadr-rs"
+    version: "v0.2.7"            # latest release (2026-10-06)
+    revision: "f586cc3cf26fe2807041cadf989e219c6e5b2073"   # the commit of tag v0.2.7; the build fetches it
+    license: "Apache-2.0 OR MIT"
+    language: "Rust"
+    independent_engine: true
+    roles: [server]
+    bundled:
+      postgresql: "17 (Alpine 3.22 package postgresql17, PostgreSQL licence)"   # the VTN's database, inside the image
+      argon2: "Alpine 3.22 package argon2 (CC0-1.0 OR Apache-2.0)"              # hashes the fixture's client secrets
+    base_images:
+      rust: "rust:1.94-alpine@sha256:77237dd363a0b127bb5ef532c2d64c0deb380b738e43a9c4bdac73398d6d0a08"
+      alpine: "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8"
+    note: >-
+      OpenLEADR has a client library too (openleadr-client); the adapter does
+      not wrap it yet, so the image has no client role.
+
+  elaadnl:
+    priority: P0
+    status: unpublished
+    upstream: "ElaadNL openadr3-client"
+    repository: "https://github.com/ElaadNL/openadr3-client"
+    artifact: "pypi:openadr3-client"
+    version: "2.4.0"             # latest release
+    revision: "7b995c64d81079b73b916aae925d88e6f6a24327"   # tag 2.4.0; information, the build installs the wheel
+    wheel_sha256: "046d01c0a83b4dda617b191c30db76e9222773c7bc00d76a65b9dab0996635c7"
+    license: "Apache-2.0"
+    language: "Python"
+    independent_engine: true
+    roles: [client]
+    lock: adapters/elaadnl/requirements.txt   # every dependency, with hashes
+    base_images:
+      python: "python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170"

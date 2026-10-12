@@ -1,0 +1,73 @@
+# Self-test cases for scripts/interop.sh.
+#
+# Columns, separated by tabs:
+#   1  state   "ro" (the case does not change the VTN; servers are shared)
+#              "rw" (the case gets a freshly started server)
+#   2  fixture the fixture the server serves and the client takes its
+#              credentials from
+#   3  exit    expected exit code of the client
+#   4  summary expected outcome: ok, error code, HTTP status of the VTN's
+#              answer and number of objects returned
+#   5  needs   "-", or features the pairing must declare in print-capabilities,
+#              separated by commas: "server:<feature>" and "client:<feature>".
+#              A pairing that lacks one skips the case.
+#   6  operation and its flags, as passed to "client". They are split on
+#      spaces: a JSON body is written without any. @program:NAME@,
+#      @event:NAME@ and @ven:NAME@ stand for the ID the VTN gave that object
+#      of the fixture.
+#
+# Every case runs for every client/server pairing whose client offers the
+# operation to the role of the client named with --as.
+#
+# Baseline: clients bl, ven-1, ven-2 and ven-3. ven-1 and ven-2 have a ven
+# object (site-1, site-2), ven-3 has none; ven-1 is granted the target
+# group-a. Programs day-ahead (open) and group-a-flex (targeted), one event
+# in each.
+ro	baseline	0	ok=true error=- status=200 n=2	-	list-programs --as bl
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as ven-2
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverTargetsMustBeNamed	list-programs --as ven-1
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as ven-1 --targets group-a
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-programs --as ven-2 --targets group-a
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --targets group-a
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --skip 0 --limit 1
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --skip 1 --limit 50
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-programs --as bl --skip 2 --limit 50
+ro	baseline	1	ok=false error=http-error status=400 n=0	-	list-programs --as bl --skip 0 --limit 51
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as bl --id @program:group-a-flex@
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as ven-2 --id @program:day-ahead@
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as ven-1 --id @program:group-a-flex@
+ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-program --as bl --id no-such-program
+ro	baseline	0	ok=true error=- status=200 n=2	-	list-events --as bl
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as bl --program-id @program:day-ahead@
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-2
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-1 --program-id @program:day-ahead@
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-1 --targets group-a
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-events --as ven-2 --targets group-a
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-event --as ven-1 --id @event:day-ahead-prices@
+ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-event --as ven-1 --id no-such-event
+ro	baseline	0	ok=true error=- status=200 n=2	-	list-vens --as bl
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-vens --as bl --ven-name site-2
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-vens --as ven-1
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-vens --as ven-1 --ven-name site-2
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-ven --as ven-1 --id @ven:site-1@
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-resources --as bl
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-resources --as ven-1 --ven-id @ven:site-1@
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-resources --as ven-2
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-reports --as bl
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-reports --as ven-1 --event-id @event:day-ahead-prices@
+ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-report --as ven-1 --id no-such-report
+ro	baseline	1	ok=false error=invalid-request status=- n=0	-	create-program --as bl --body {"targets":["group-a"]}
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-program --as bl --body {"programName":"extra","targets":["group-a"]}
+rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-program --as bl --body {"programName":"day-ahead"}
+rw	baseline	0	ok=true error=- status=200 n=1	-	update-program --as bl --id @program:group-a-flex@ --body {"programName":"group-a-flex-renamed"}
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-event --as bl --body {"programID":"@program:day-ahead@","eventName":"extra","intervals":[{"id":0,"payloads":[{"type":"PRICE","values":[0.5]}]}]}
+rw	baseline	0	ok=true error=- status=200 n=1	-	delete-event --as bl --id @event:group-a-limit@
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-report --as ven-1 --body {"eventID":"@event:day-ahead-prices@","clientName":"site-1","resources":[{"resourceName":"battery","intervals":[{"id":0,"payloads":[{"type":"USAGE","values":[3.5]}]}]}]}
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-ven --as ven-3 --body {"venName":"site-3"}
+rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-ven --as ven-3 --body {"venName":"site-1"}
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-ven --as bl --body {"venName":"site-3","clientID":"interop-ven-3","targets":["group-b"]}
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-resource --as ven-1 --body {"resourceName":"charger","venID":"@ven:site-1@"}
+rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-resource --as ven-1 --body {"resourceName":"battery","venID":"@ven:site-1@"}
+ro	descriptors	0	ok=true error=- status=200 n=1	client:clientReportDescriptorsInPrograms	list-programs --as ven-1
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-vens --as ven-3
+rw	baseline	0	ok=true error=- status=200 n=1	-	delete-ven --as bl --id @ven:site-2@

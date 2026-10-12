@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/otfabric/openadr-interop/schemas/capabilities.schema.json",
+  "title": "openadr-interop capability document",
+  "description": "Output of 'print-capabilities'. See docs/CAPABILITIES.md.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "adapter",
+    "adapterVersion",
+    "protocol",
+    "openadrVersions",
+    "upstream",
+    "roles",
+    "features",
+    "serverObjects",
+    "clientOperations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "adapter": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+$"
+    },
+    "adapterVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol": {
+      "const": "openadr3"
+    },
+    "openadrVersions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "3.1.0"
+        ]
+      }
+    },
+    "upstream": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "revision",
+        "license",
+        "language",
+        "independentEngine"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "independentEngine": {
+          "type": "boolean"
+        }
+      }
+    },
+    "roles": {
+      "type": "object",
+      "required": [
+        "server",
+        "client"
+      ],
+      "properties": {
+        "server": {
+          "type": "boolean"
+        },
+        "client": {
+          "type": "boolean"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "required": [
+        "serverTokenEndpoint",
+        "serverVenObjectType",
+        "serverInvalidTokenIs401",
+        "serverTargetsMustBeNamed",
+        "clientTokenDiscovery",
+        "clientReportDescriptorsInPrograms"
+      ],
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "serverObjects": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "programs",
+          "events",
+          "reports",
+          "vens",
+          "resources"
+        ]
+      }
+    },
+    "clientOperations": {
+      "type": "object",
+      "required": [
+        "bl",
+        "ven"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "bl": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "list-programs",
+              "get-program",
+              "create-program",
+              "update-program",
+              "delete-program",
+              "list-events",
+              "get-event",
+              "create-event",
+              "update-event",
+              "delete-event",
+              "list-reports",
+              "get-report",
+              "create-report",
+              "update-report",
+              "delete-report",
+              "list-vens",
+              "get-ven",
+              "create-ven",
+              "update-ven",
+              "delete-ven",
+              "list-resources",
+              "get-resource",
+              "create-resource",
+              "update-resource",
+              "delete-resource"
+            ]
+          }
+        },
+        "ven": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "list-programs",
+              "get-program",
+              "create-program",
+              "update-program",
+              "delete-program",
+              "list-events",
+              "get-event",
+              "create-event",
+              "update-event",
+              "delete-event",
+              "list-reports",
+              "get-report",
+              "create-report",
+              "update-report",
+              "delete-report",
+              "list-vens",
+              "get-ven",
+              "create-ven",
+              "update-ven",
+              "delete-ven",
+              "list-resources",
+              "get-resource",
+              "create-resource",
+              "update-resource",
+              "delete-resource"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

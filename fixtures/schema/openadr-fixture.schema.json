@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/otfabric/openadr-interop/fixtures/schema/openadr-fixture.schema.json",
+  "title": "openadr-interop fixture",
+  "description": "What a reference VTN holds when it reports ready. See docs/FIXTURES.md, which also lists the rules a schema cannot express.",
+  "type": "object",
+  "required": ["schemaVersion", "name", "openadrVersion", "clients", "vens", "resources", "programs", "events"],
+  "additionalProperties": false,
+  "$defs": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "label": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "maxLength": 64 },
+    "targets": { "type": "array", "items": { "$ref": "#/$defs/name" }, "uniqueItems": true }
+  },
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "name": { "$ref": "#/$defs/label" },
+    "description": { "type": "string" },
+    "openadrVersion": { "enum": ["3.1.0"] },
+    "clients": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "role", "clientId", "clientSecret"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "#/$defs/label" },
+          "role": { "enum": ["bl", "ven"] },
+          "clientId": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{1,128}$" },
+          "clientSecret": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{8,128}$" }
+        }
+      }
+    },
+    "vens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["venName", "client"],
+        "additionalProperties": false,
+        "properties": {
+          "venName": { "$ref": "#/$defs/name" },
+          "client": { "$ref": "#/$defs/label" },
+          "targets": { "$ref": "#/$defs/targets" }
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["resourceName", "ven"],
+        "additionalProperties": false,
+        "properties": {
+          "resourceName": { "$ref": "#/$defs/name" },
+          "ven": { "$ref": "#/$defs/name" },
+          "targets": { "$ref": "#/$defs/targets" }
+        }
+      }
+    },
+    "programs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A programRequest of the specification.",
+        "required": ["programName"],
+        "properties": {
+          "programName": { "$ref": "#/$defs/name" },
+          "targets": { "$ref": "#/$defs/targets" }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "An eventRequest of the specification, with the program given by name instead of programID.",
+        "required": ["eventName", "program"],
+        "not": { "required": ["programID"] },
+        "properties": {
+          "eventName": { "$ref": "#/$defs/name" },
+          "program": { "$ref": "#/$defs/name" },
+          "targets": { "$ref": "#/$defs/targets" }
+        }
+      }
+    }
+  }
+}

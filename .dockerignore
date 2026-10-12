@@ -1,0 +1,8 @@
+# The adapter images need the adapters, the fixtures and the licence only.
+.git
+.github
+conformance
+docs
+reports
+scripts
+tests

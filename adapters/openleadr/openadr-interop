@@ -1,0 +1,15 @@
+#!/usr/bin/python3 -I
+# SPDX-License-Identifier: MIT
+"""Entry point of the openadr-interop adapter for OpenLEADR."""
+
+import sys
+
+sys.path.insert(0, "/opt/openadr-interop")
+
+from openadr_interop.main import main  # noqa: E402  pylint: disable=wrong-import-position
+
+if __name__ == "__main__":
+    code = main(sys.argv[1:])
+    sys.stdout.flush()
+    sys.stderr.flush()
+    sys.exit(code)

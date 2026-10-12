@@ -1,0 +1,16 @@
+# Scenarios known to fail against the OpenLEADR reference server, for
+# scripts/conformance.sh. docs/COMPATIBILITY.md explains each one.
+#
+# Columns, separated by tabs:
+#   1  upstream version, as print-capabilities reports it
+#   2  scenario ID
+#   3  text that occurs in the failure messages of the scenario
+#   4  what is observed
+#
+# A listed scenario that fails with that text is reported as a known finding
+# and does not fail the run. One that fails without it is a new failure, and
+# one that passes fails the run too: the entry is stale.
+v0.2.7	AUTH-003	status 403, want 401	A bearer token the VTN did not issue is answered 403, not 401
+v0.2.7	VEN-001	property "objectType" is missing	ven objects are returned without objectType
+v0.2.7	TARGET-001	property "objectType" is missing	ven objects are returned without objectType
+v0.2.7	TARGET-002	without naming the target	A VEN sees a targeted program without naming the target it was granted

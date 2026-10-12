@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "name": "descriptors",
+  "description": "One program that describes both its event payloads and its report payloads, as programRequest.payloadDescriptors allows.",
+  "openadrVersion": "3.1.0",
+  "clients": [
+    { "name": "bl", "role": "bl", "clientId": "interop-bl", "clientSecret": "interop-bl-secret" },
+    { "name": "ven-1", "role": "ven", "clientId": "interop-ven-1", "clientSecret": "interop-ven-1-secret" }
+  ],
+  "vens": [],
+  "resources": [],
+  "programs": [
+    {
+      "programName": "prices-and-usage",
+      "payloadDescriptors": [
+        { "objectType": "EVENT_PAYLOAD_DESCRIPTOR", "payloadType": "PRICE", "units": "KWH", "currency": "EUR" },
+        { "objectType": "REPORT_PAYLOAD_DESCRIPTOR", "payloadType": "USAGE", "units": "KWH", "readingType": "DIRECT_READ" }
+      ]
+    }
+  ],
+  "events": []
+}

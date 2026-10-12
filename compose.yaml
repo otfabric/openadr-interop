@@ -1,0 +1,27 @@
+# Reference servers for local work. Ports are published on loopback only:
+# these VTNs speak plain HTTP and their clients' secrets are in the fixture,
+# in this repository. They must not be reachable from any other machine.
+#
+#   docker compose up -d --wait        # every server, waits for readiness
+#   docker compose down
+#
+# OPENADR_INTEROP_VERSION selects the image tag (default: dev, the local build).
+# A VTN tells its clients where its token endpoint is, so each server is told
+# the URL under which this file publishes it.
+
+x-server: &server
+  healthcheck:
+    test: ["CMD", "test", "-f", "/run/openadr-interop/ready"]
+    interval: 2s
+    timeout: 2s
+    retries: 15
+    start_period: 30s
+  stop_grace_period: 20s
+
+services:
+  openleadr:
+    <<: *server
+    image: ghcr.io/otfabric/openadr-interop-openleadr:${OPENADR_INTEROP_VERSION:-dev}
+    command: ["server", "--fixture", "/fixtures/${OPENADR_INTEROP_FIXTURE:-baseline}/fixture.json", "--public-url", "http://127.0.0.1:8080"]
+    ports:
+      - "127.0.0.1:8080:8080"

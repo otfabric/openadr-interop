@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/otfabric/openadr-interop/schemas/client-result.schema.json",
+  "title": "openadr-interop client result",
+  "description": "The one document a 'client' invocation prints. See docs/CONTAINER_CONTRACT.md.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "adapter",
+    "operation",
+    "client",
+    "role",
+    "ok",
+    "error",
+    "authenticated",
+    "status",
+    "response",
+    "problem",
+    "elapsedMs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "adapter": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+$"
+    },
+    "operation": {
+      "enum": [
+        "list-programs",
+        "get-program",
+        "create-program",
+        "update-program",
+        "delete-program",
+        "list-events",
+        "get-event",
+        "create-event",
+        "update-event",
+        "delete-event",
+        "list-reports",
+        "get-report",
+        "create-report",
+        "update-report",
+        "delete-report",
+        "list-vens",
+        "get-ven",
+        "create-ven",
+        "update-ven",
+        "delete-ven",
+        "list-resources",
+        "get-resource",
+        "create-resource",
+        "update-resource",
+        "delete-resource"
+      ]
+    },
+    "client": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "role": {
+      "enum": [
+        "bl",
+        "ven"
+      ]
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "error": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "enum": [
+                "connect-failed",
+                "auth-failed",
+                "http-error",
+                "timeout",
+                "invalid-request",
+                "invalid-response",
+                "failed"
+              ]
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "authenticated": {
+      "type": "boolean"
+    },
+    "status": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        }
+      ]
+    },
+    "response": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      ]
+    },
+    "problem": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "elapsedMs": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "ok": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "type": "null"
+          },
+          "problem": {
+            "type": "null"
+          },
+          "response": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 200,
+            "maximum": 299
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "error": {
+            "type": "object"
+          },
+          "response": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

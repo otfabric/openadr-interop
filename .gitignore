@@ -1,0 +1,13 @@
+# Run output
+reports/
+conformance/bin/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+__pycache__/
+
+# Coverage
+cover.*
+coverage.*
