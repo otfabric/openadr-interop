@@ -172,8 +172,13 @@ while IFS=$'\t' read -r state fixture want_exit want_summary needs operation; do
     read -ra words <<<"${operation}"
     op="${words[0]}"
     who=""
-    for ((i = 1; i < ${#words[@]}; i++)); do [[ "${words[i]}" == "--as" ]] && who="${words[i + 1]}"; done
-    role=$(role_of "${fixture}" "${who}")
+    anonymous=""
+    for ((i = 1; i < ${#words[@]}; i++)); do
+        [[ "${words[i]}" == "--as" ]] && who="${words[i + 1]}"
+        [[ "${words[i]}" == "--anonymous" ]] && anonymous="${words[i + 1]}"
+    done
+    # A client without a token is no client of the fixture: its role is given.
+    if [[ -n "${anonymous}" ]]; then role="${anonymous}"; else role=$(role_of "${fixture}" "${who}"); fi
     for server in "${SERVERS[@]}"; do
         for cl in "${CLIENTS[@]}"; do
             pair="${cl}->${server}"

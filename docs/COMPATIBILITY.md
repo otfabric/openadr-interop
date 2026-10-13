@@ -20,9 +20,15 @@ program → event → report workflow, for every client against every server.
 
 | Client | Server | Result |
 |--------|--------|--------|
-| `elaadnl` 2.4.0 | `openleadr` v0.2.7 | 59 checks pass, 2 cases skipped on declared capabilities |
+| `elaadnl` 2.4.0 | `openleadr` v0.2.7 | 73 checks pass, 5 cases skipped on declared capabilities |
 
-The two skipped cases are the ones the capabilities below explain.
+The skipped cases are the ones the capabilities below explain.
+
+Not in the matrix, because the two do not get that far with each other:
+`listen-mqtt` of `elaadnl` on the broker of `openleadr`. The library cannot
+read `GET /notifiers` of OpenLEADR, which is where it learns of the broker
+(see the findings), and it has no way to log in to a broker with a user name
+and a password, which the broker of the image asks for.
 
 ## Conformance of the reference servers
 
@@ -76,11 +82,12 @@ hears nothing. The topics for all objects of a kind (`events/create`, ...)
 agree with what is published. Found with a subscriber on the reference
 broker; a fault of the implementation.
 
-**`GET /notifiers` does not follow the schema.** `WEBHOOK`, which the schema
-requires, is absent; the authentication method is written
+**`GET /notifiers` does not follow the schema** (feature
+`serverNotifiersWebhook`). `WEBHOOK`, which the schema requires, is absent; the authentication method is written
 `OAUTH2BEARERTOKEN` where the schema has `OAUTH2_BEARER_TOKEN`; and there
 are members the schema does not have (`WEBSOCKET`, `PUSH-MQTT`). A client
-that reads the binding leniently is not affected.
+that reads the binding leniently is not affected; the ElaadNL client, which
+requires `WEBHOOK`, cannot read it.
 
 **The MQTT topic operations for all programs and all events are open to
 VENs**, where the document asks for `read_all`. OpenLEADR publishes there
@@ -154,6 +161,34 @@ OpenADR 3.1 requires of deployments. The adapter passes
 `allow_insecure_http` and sets `OAUTHLIB_INSECURE_TRANSPORT` when it is given
 an `http://` URL, because reference servers on a test network have no
 certificate.
+
+**The operations of a subscription have the names of OpenADR 3.0.1**
+(feature `clientSubscriptionOperations310`). The library's 3.1.0 model takes
+`GET`, `POST`, `PUT` and `DELETE` for `objectOperations[].operations`; 3.1.0
+names them `READ`, `CREATE`, `UPDATE` and `DELETE`. A subscription to `CREATE`
+the library refuses to send, one to `POST` a 3.1.0 VTN refuses to take, and a
+subscription someone else made with the 3.1.0 names is an invalid response.
+`DELETE` is the one name the two share. This is a fault of the library against
+the 3.1.0 schema. The model also requires `bearerToken` in what it reads,
+which the schema leaves optional.
+
+**`GET /notifiers` needs both `WEBHOOK` and `MQTT`** (feature
+`clientNotifiersWithoutMqtt`). The schema requires `WEBHOOK` only; the
+library's model requires `MQTT` too, so the notifiers of a VTN without a
+broker are an invalid response. It reads `authentication` of the MQTT binding
+into a class without fields: whatever the VTN says there, the library's MQTT
+client connects without a user name, a password or a certificate.
+
+**The topics of one object are an invalid response** (feature
+`clientTopicsOfOneObject`). `notifierOperationsTopics` requires `UPDATE` and
+`DELETE`; `CREATE` is "not provided for notifications for a specific object
+ID", and `ALL` is there "if supported by VTN". The library's model requires
+all four, so `GET /notifiers/mqtt/topics/programs/{id}` and
+`/vens/{id}` of a VTN that follows the description cannot be read.
+
+**Subscriptions are a VEN's to write.** The library's VEN client has the five
+subscription operations; its Business Logic client reads subscriptions and
+cannot make one, though the specification gives both the scope.
 
 **What the library offers each role follows the scopes of the
 specification.** There is no way to ask it to create a program as a VEN, so

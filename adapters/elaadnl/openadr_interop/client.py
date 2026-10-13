@@ -11,8 +11,11 @@ exactly what an application using the library would send.
 from __future__ import annotations
 
 import importlib
+import json
 import logging
 import os
+import sys
+import threading
 import time
 from urllib.parse import urlsplit
 
@@ -33,7 +36,19 @@ REQUEST_MODELS = {
             "ven": ("ven.ven", "NewVenVenRequest", "VenUpdateVenRequest")},
     "resource": {"bl": ("resource.resource", "NewResourceBlRequest", "ResourceUpdateBlRequest"),
                  "ven": ("resource.resource", "NewResourceVenRequest", "ResourceUpdateVenRequest")},
+    "subscription": {"*": ("subscriptions.subscription", "NewSubscription", "SubscriptionUpdate")},
 }
+
+# Resource groups are an extension with a client and models of their own.
+RESOURCE_GROUPS = "openadr3_client.extensions.resource_group"
+
+
+class ListenError(Exception):
+    """listen-mqtt did not get what it was asked to wait for."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class Recorder:
@@ -73,6 +88,8 @@ def dump(value: object) -> object:
     """What the library returned, in the JSON form of the specification."""
     if isinstance(value, (tuple, list)):
         return [dump(item) for item in value]
+    if isinstance(value, dict):
+        return value
     return value.model_dump(by_alias=True, mode="json", exclude_none=True)
 
 
@@ -84,23 +101,34 @@ def call(request: dict) -> object:
     from openadr3_client.version import OADRVersion  # pylint: disable=import-outside-toplevel
 
     who, obj, verb = request["client"], request["object"], request["verb"]
-    if request["url"].startswith("http://") or (request["token_url"] or "").startswith("http://"):
+    insecure = request["url"].startswith("http://")
+    if insecure or (request["token_url"] or "").startswith("http://"):
         # oauthlib, too, refuses a token endpoint without TLS unless told otherwise.
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    settings = {
-        "vtn_base_url": request["url"],
-        "client_id": who["clientId"],
-        "client_secret": who["clientSecret"],
-        "token_url": request["token_url"],
-        # The library refuses plain HTTP unless told otherwise; reference
-        # servers on a test network have no certificate.
-        "allow_insecure_http": request["url"].startswith("http://"),
-        "version": OADRVersion.OADR_310,
-    }
-    if who["role"] == "bl":
-        library = BusinessLogicHttpClientFactory.create_http_bl_client(**settings)
+    # The library refuses plain HTTP unless told otherwise; reference
+    # servers on a test network have no certificate.
+    settings = {"vtn_base_url": request["url"], "allow_insecure_http": insecure, "version": OADRVersion.OADR_310}
+    if who["clientId"] is None:
+        if who["role"] == "bl":
+            library = BusinessLogicHttpClientFactory.create_anonymous_http_bl_client(**settings)
+        else:
+            library = VirtualEndNodeHttpClientFactory.create_anonymous_http_ven_client(**settings)
     else:
-        library = VirtualEndNodeHttpClientFactory.create_http_ven_client(**settings)
+        settings |= {"client_id": who["clientId"], "client_secret": who["clientSecret"], "token_url": request["token_url"]}
+        if who["role"] == "bl":
+            library = BusinessLogicHttpClientFactory.create_http_bl_client(**settings)
+        else:
+            library = VirtualEndNodeHttpClientFactory.create_http_ven_client(**settings)
+
+    if request["operation"] == "get-notifiers":
+        return library.notifiers.get_notifiers()
+    if request["operation"] == "get-topics":
+        return _topics(library, request)
+    if request["operation"] == "listen-mqtt":
+        return _listen(library, request)
+
+    if obj == "resource-group":
+        return _resource_group(library, request)
     interface = getattr(library, obj + "s")
 
     if verb == "list":
@@ -125,6 +153,110 @@ def call(request: dict) -> object:
     return getattr(interface, f"update_{obj}_by_id")(request["id"], body)
 
 
+def _resource_group(library: object, request: dict) -> object:
+    """One operation with the library's resource group client."""
+    factory = importlib.import_module(f"{RESOURCE_GROUPS}.factory").ResourceGroupClientFactory
+    filters = importlib.import_module(f"{RESOURCE_GROUPS}._client.filters")
+    models = importlib.import_module(f"{RESOURCE_GROUPS}.models.resource_group")
+
+    who, verb = request["client"], request["verb"]
+    # This factory wants the token endpoint: where none is given, the VTN is
+    # asked as the library's other clients ask it.
+    token_url = request["token_url"] or library.auth.get_auth_server().token_url
+    create = factory.create_bl_client if who["role"] == "bl" else factory.create_ven_client
+    interface = create(
+        vtn_base_url=request["url"], client_id=who["clientId"], client_secret=who["clientSecret"],
+        token_url=token_url, allow_insecure_http=request["url"].startswith("http://"),
+    )
+    if verb == "list":
+        arguments = dict(request["filters"])
+        if request["targets"] is not None:
+            arguments["target"] = filters.TargetFilter(targets=request["targets"])
+        if request["pagination"] is not None:
+            arguments["pagination"] = filters.PaginationFilter(skip=request["pagination"][0], limit=request["pagination"][1])
+        return interface.get_resource_groups(**arguments)
+    if verb == "get":
+        return interface.get_resource_group_by_id(request["id"])
+    if verb == "delete":
+        return interface.delete_resource_group_by_id(request["id"])
+    if verb == "create":
+        return interface.create_resource_group(models.NewResourceGroup.model_validate(request["body"]))
+    return interface.update_resource_group_by_id(request["id"], models.ResourceGroupUpdate.model_validate(request["body"]))
+
+
+def _topics(library: object, request: dict) -> object:
+    """The MQTT topics the VTN names for a scope."""
+    from .main import TOPIC_SCOPES  # pylint: disable=import-outside-toplevel
+
+    method = getattr(library.notifiers, TOPIC_SCOPES[request["scope"]][0])
+    return method() if request["id"] is None else method(request["id"])
+
+
+def _listen(library: object, request: dict) -> dict:
+    """Wait for notifications on the VTN's MQTT broker, with the library's MQTT client.
+
+    The broker and the topic are the ones the VTN names: nothing about them
+    is given on the command line.
+    """
+    from openadr3_client.oadr310._vtn.mqtt.client import MQTTClient  # pylint: disable=import-outside-toplevel
+
+    binding = library.notifiers.get_notifiers().mqtt
+    topic = getattr(_topics(library, request).topics, request["topic_operation"])
+    broker = urlsplit(str(binding.uris[0]))
+    secure = broker.scheme in ("mqtts", "ssl", "tls")
+    if broker.scheme not in ("mqtt", "tcp") and not secure:
+        raise ListenError("failed", f"the VTN names a broker this adapter cannot reach: {binding.uris[0]}")
+
+    client = MQTTClient(binding)
+    if secure:
+        client.tls_set()
+    messages: list[dict] = []
+    enough, subscribed = threading.Event(), threading.Event()
+    refused: list[str] = []
+
+    def on_connect(mqtt, _userdata, _flags, reason, _properties):  # noqa: ANN001, ANN202
+        if reason.is_failure:
+            refused.append(str(reason))
+            enough.set()
+            return
+        mqtt.subscribe(topic, qos=1)
+
+    def on_subscribe(_mqtt, _userdata, _mid, reasons, _properties):  # noqa: ANN001, ANN202
+        if any(reason.is_failure for reason in reasons):
+            refused.append("subscription refused: " + ", ".join(str(reason) for reason in reasons))
+            enough.set()
+            return
+        if not subscribed.is_set():
+            subscribed.set()
+            print(f"openadr-interop: listening on {topic}", file=sys.stderr, flush=True)
+
+    def on_message(_mqtt, _userdata, message):  # noqa: ANN001, ANN202
+        try:
+            payload = json.loads(message.payload)
+        except ValueError:
+            payload = message.payload.decode("utf-8", "replace")
+        messages.append({"topic": message.topic, "payload": payload})
+        if len(messages) >= request["messages"]:
+            enough.set()
+
+    client.on_connect, client.on_subscribe, client.on_message = on_connect, on_subscribe, on_message
+    try:
+        client.connect(broker.hostname, broker.port or (8883 if secure else 1883))
+    except OSError as exc:
+        raise ListenError("connect-failed", f"MQTT broker {binding.uris[0]}: {exc}") from exc
+    client.loop_start()
+    try:
+        enough.wait(request["listen"])
+    finally:
+        client.disconnect()
+        client.loop_stop()
+    if refused:
+        raise ListenError("failed", f"MQTT broker {binding.uris[0]}: {refused[0]}")
+    if len(messages) < request["messages"]:
+        raise ListenError("timeout", f"{len(messages)} of {request['messages']} notifications on {topic}")
+    return {"broker": str(binding.uris[0]), "topic": topic, "messages": messages[:request["messages"]]}
+
+
 def _list_arguments(obj: str) -> tuple[str, ...]:
     """The arguments of the library's search for an object type."""
     return {
@@ -133,6 +265,7 @@ def _list_arguments(obj: str) -> tuple[str, ...]:
         "report": ("pagination", "program_id", "event_id", "client_name"),
         "ven": ("ven_name", "target", "pagination"),
         "resource": ("ven_id", "resource_name", "target", "pagination"),
+        "subscription": ("pagination", "program_id", "client_name", "objects"),
     }[obj]
 
 
@@ -165,6 +298,9 @@ def run(request: dict) -> tuple[dict, int]:
     try:
         document["response"] = dump(call(request))
         document["ok"], code = True, 0
+    except ListenError as exc:
+        fail(exc.code, exc)
+        code = 3 if exc.code == "connect-failed" else 1
     except requests.exceptions.HTTPError as exc:
         response = exc.response
         status = response.status_code if response is not None else None

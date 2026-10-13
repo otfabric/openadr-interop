@@ -35,6 +35,14 @@ Schema: [schemas/capabilities.schema.json](../schemas/capabilities.schema.json).
 | `mdnsDiscover` | The image has the command `discover`, which looks for VTNs with the implementation's own browser (contract 1.2). Optional likewise |
 | `clientTokenDiscovery` | Without `--token-url` the client finds the token endpoint with `GET /auth/server` |
 | `clientReportDescriptorsInPrograms` | The client reads a program whose `payloadDescriptors` hold a report payload descriptor |
+| `serverNotifiersWebhook` | `GET /notifiers` has `WEBHOOK`, as the specification requires (contract 1.3). Optional: only an image that says `false` is known to leave it out |
+| `serverResourceGroups` | The VTN serves `/resource_groups`, an extension to OpenADR 3.1.0 (contract 1.3). Optional, as are the features below |
+| `clientAnonymous` | The client can run without a token: `--anonymous ROLE` |
+| `clientResourceGroups` | The client has the resource group operations |
+| `clientMqtt` | The client has `listen-mqtt` |
+| `clientSubscriptionOperations310` | The client names the operations of a subscription as OpenADR 3.1.0 does: `CREATE`, `READ`, `UPDATE`, `DELETE` |
+| `clientNotifiersWithoutMqtt` | The client reads `GET /notifiers` of a VTN that has no MQTT broker |
+| `clientTopicsOfOneObject` | The client reads the topics of one program or ven, which have no `CREATE` topic |
 
 A feature that is false is not necessarily a fault: `serverTargetsMustBeNamed`
 is a reading of text the specification leaves open. [COMPATIBILITY.md](COMPATIBILITY.md)
@@ -55,8 +63,18 @@ says which is which.
 | `serverMqtt` | yes | |
 | `serverMdns` | yes | |
 | `mdnsDiscover` | yes | |
+| `serverNotifiersWebhook` | no | |
+| `serverResourceGroups` | yes | |
 | `clientTokenDiscovery` | | yes |
 | `clientReportDescriptorsInPrograms` | | no |
+| `clientAnonymous` | | yes |
+| `clientResourceGroups` | | yes |
+| `clientMqtt` | | yes |
+| `clientSubscriptionOperations310` | | no |
+| `clientNotifiersWithoutMqtt` | | no |
+| `clientTopicsOfOneObject` | | no |
 
 `elaadnl` offers a Business Logic client every operation except writing
-reports, and a VEN client every operation except writing programs and events.
+reports and subscriptions, and a VEN client every operation except writing
+programs, events and resource groups. Both have `get-notifiers`, `get-topics`
+and `listen-mqtt`.

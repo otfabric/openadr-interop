@@ -3,7 +3,7 @@
 ## How a release is made
 
 1. `make ci` on the commit to release.
-2. Update `interop_version` in `versions.yaml`, the `version` constant of the conformance suite (`scripts/check-versions.sh` requires the two to agree) and the notes below.
+2. Update `interop_version` in `versions.yaml`, the `version` constant of the conformance suite, the status line and release link of README.md, the heading in PLAN.md, and the notes below under a heading `## vX.Y.Z (date)`. `make validate` (`scripts/check-versions.sh`) fails when any of these names another version, or when the contract version of `versions.yaml` and docs/CONTAINER_CONTRACT.md differ.
 3. Tag `vX.Y.Z` and push the tag. The release workflow runs one job on an amd64 runner and one on an arm64 runner: each validates, builds every image natively with `ADAPTER_VERSION` set to the tag, runs the smoke test, the cross-stack self-test and the conformance suite on those images and pushes exactly them to GHCR as `<image>:vX.Y.Z-amd64` and `-arm64`. A last job joins the two into the multi-arch `<image>:vX.Y.Z` and creates the GitHub release with `manifest.json` (upstream pins and the digests of the multi-arch images) and `checksums.txt`.
 4. Consumers pin the digests from `manifest.json`.
 
@@ -21,7 +21,47 @@ The `Upstream candidates` workflow runs every Monday and on demand. For each ada
 
 ---
 
-## Unreleased (planned v0.3.0)
+## v0.4.0 (2026-10-13)
+
+## Summary
+
+The ElaadNL reference client does more than read and write the five object
+types: it manages subscriptions and resource groups, asks a VTN for its
+notifiers and MQTT topics, listens on the broker the VTN names, and can run
+without a token. Contract 1.3: additions, nothing a consumer of 1.2 has to
+change.
+
+## Changes
+
+### Added
+
+- **Subscriptions**: `list-subscriptions` and `get-subscription` for both roles, `create-`, `update-` and `delete-subscription` for a VEN, which is what the library offers.
+- **Resource groups**, the extension to OpenADR 3.1.0 that OpenLEADR serves: the five operations for Business Logic, the two reads for a VEN, through the library's own resource group client.
+- **`get-notifiers`** and **`get-topics --scope SCOPE [--id ID]`**: what the VTN says about its notifiers, and the MQTT topics it names for each of the twelve scopes of the specification.
+- **`listen-mqtt`**: connects the library's MQTT client to the broker the VTN names, subscribes to a topic the VTN names, and reports the notifications it received.
+- **`--anonymous ROLE`** in place of `--as`: the library's client without a token, for a VTN that asks for none.
+- Features `clientAnonymous`, `clientResourceGroups`, `clientMqtt`, `clientSubscriptionOperations310`, `clientNotifiersWithoutMqtt`, `clientTopicsOfOneObject` of `elaadnl`; `serverResourceGroups` and `serverNotifiersWebhook` of `openleadr`. All optional: an image that does not name one is an older image.
+- 17 cases in the cross-stack self-test for the above.
+
+### Changed
+
+- The lock of the `elaadnl` image is made from `openadr3-client[mqtt]`: it gains `paho-mqtt` 2.1.0 (EPL-2.0 OR BSD-3-Clause), and no other pin moved.
+
+### Upstream notes
+
+Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
+- ElaadNL openadr3-client 2.4.0 names the operations of a subscription as OpenADR 3.0.1 did (`GET`, `POST`, `PUT`, `DELETE`). Against a 3.1.0 VTN only a subscription to `DELETE` can be made and read.
+- It requires `MQTT` in `GET /notifiers` and `CREATE` and `ALL` in every topics answer, none of which the specification requires.
+- It cannot read `GET /notifiers` of OpenLEADR v0.2.7, which leaves out `WEBHOOK`, and has no way to log in to an MQTT broker with a user name and a password: `listen-mqtt` of `elaadnl` does not work against the `openleadr` image.
+
+### Verification
+
+`make validate lint smoke interop` on arm64: smoke 31 and 42 checks, self-test 73 checks passed and 5 skipped on declared capabilities.
+
+---
+
+## v0.3.0 (2026-10-13)
 
 ## Summary
 

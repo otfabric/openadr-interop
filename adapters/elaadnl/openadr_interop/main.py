@@ -16,19 +16,47 @@ BUILD_INFO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 _FIXTURE_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _ID = re.compile(r"^[a-zA-Z0-9_-]{1,128}$")
 
-OBJECTS = ("program", "event", "report", "ven", "resource")
+OBJECTS = ("program", "event", "report", "ven", "resource", "subscription", "resource-group")
 VERBS = ("list", "get", "create", "update", "delete")
+READS = ("list", "get")
+
+# Operations that are not one of the five on an object type: what the VTN
+# says about its notifiers, the MQTT topics it publishes to, and listening
+# on them.
+NOTIFIER_OPERATIONS = ("get-notifiers", "get-topics", "listen-mqtt")
 
 # What the library offers each role. It follows the scopes of the
 # specification: Business Logic does not write reports, a VEN does not write
-# programs or events.
+# programs or events. Subscriptions are a VEN's to write: the library's
+# Business Logic client only reads them. Resource groups, an extension, are
+# Business Logic's to write.
 CLIENT_OPERATIONS = {
     "bl": [f"{verb}-{obj}{'s' if verb == 'list' else ''}"
-           for obj in OBJECTS for verb in VERBS if obj != "report" or verb in ("list", "get")],
+           for obj in OBJECTS for verb in VERBS if obj not in ("report", "subscription") or verb in READS]
+          + list(NOTIFIER_OPERATIONS),
     "ven": [f"{verb}-{obj}{'s' if verb == 'list' else ''}"
-            for obj in OBJECTS for verb in VERBS if obj not in ("program", "event") or verb in ("list", "get")],
+            for obj in OBJECTS for verb in VERBS if obj not in ("program", "event", "resource-group") or verb in READS]
+           + list(NOTIFIER_OPERATIONS),
 }
 ALL_OPERATIONS = sorted(set(CLIENT_OPERATIONS["bl"]) | set(CLIENT_OPERATIONS["ven"]))
+
+# The topics a VTN names, as --scope value -> (library method, the object
+# whose ID the method takes).
+TOPIC_SCOPES = {
+    "programs": ("get_program_topics", None),
+    "program": ("get_program_topics_for_id", "program"),
+    "events": ("get_event_topics", None),
+    "program-events": ("get_event_topics_for_program", "program"),
+    "reports": ("get_report_topics", None),
+    "subscriptions": ("get_subscription_topics", None),
+    "vens": ("get_ven_topics", None),
+    "ven": ("get_ven_topics_for_id", "ven"),
+    "resources": ("get_resource_topics", None),
+    "ven-events": ("get_event_topics_for_ven", "ven"),
+    "ven-programs": ("get_program_topics_for_ven", "ven"),
+    "ven-resources": ("get_resource_topics_for_ven", "ven"),
+}
+TOPIC_OPERATIONS = ("all", "create", "update", "delete")
 
 # The search filters of each object type, as flag name -> library argument.
 LIST_FILTERS = {
@@ -37,13 +65,15 @@ LIST_FILTERS = {
     "report": {"program-id": "program_id", "event-id": "event_id", "client-name": "client_name"},
     "ven": {"ven-name": "ven_name"},
     "resource": {"ven-id": "ven_id", "resource-name": "resource_name"},
+    "subscription": {"program-id": "program_id", "client-name": "client_name"},
+    "resource-group": {"resource-group-name": "resource_group_name"},
 }
-# Report searches take no targets.
-TARGET_FILTER = {"program", "event", "ven", "resource"}
+# Report and subscription searches take no targets.
+TARGET_FILTER = {"program", "event", "ven", "resource", "resource-group"}
 
 USAGE = """usage:
-  openadr-interop client <operation> --url URL --as CLIENT [--fixture PATH] [--token-url URL]
-                         [--timeout-ms N] [operation flags]
+  openadr-interop client <operation> --url URL (--as CLIENT | --anonymous ROLE) [--fixture PATH]
+                         [--token-url URL] [--timeout-ms N] [operation flags]
   openadr-interop print-capabilities
   openadr-interop print-fixture [NAME]
   openadr-interop version
@@ -127,6 +157,24 @@ def capabilities() -> dict:
             # REPORT_PAYLOAD_DESCRIPTOR as an invalid response: its program
             # model accepts event payload descriptors only.
             "clientReportDescriptorsInPrograms": False,
+            # --anonymous: the library's client without a token.
+            "clientAnonymous": True,
+            # The resource group operations, an extension to OpenADR 3.1.0.
+            "clientResourceGroups": True,
+            # listen-mqtt: the library's MQTT client.
+            "clientMqtt": True,
+            # The library names the operations of a subscription as OpenADR
+            # 3.0.1 does (GET, POST, PUT, DELETE), not as 3.1.0 does (CREATE,
+            # READ, UPDATE, DELETE).
+            "clientSubscriptionOperations310": False,
+            # The library reads GET /notifiers without MQTT as an invalid
+            # response: its model requires the MQTT binding, which the
+            # specification leaves optional.
+            "clientNotifiersWithoutMqtt": False,
+            # Likewise the topics of one program or ven, which have no CREATE
+            # topic: the library's model requires CREATE and ALL, the
+            # specification UPDATE and DELETE.
+            "clientTopicsOfOneObject": False,
         },
         "serverObjects": [],
         "clientOperations": CLIENT_OPERATIONS,
@@ -140,21 +188,33 @@ def parse_client(args: list[str]) -> dict:
     operation, rest = args[0], args[1:]
     if operation not in ALL_OPERATIONS:
         raise UsageError(f"unknown operation {operation!r}")
+    notifier = operation in NOTIFIER_OPERATIONS
     verb, _, obj = operation.partition("-")
     obj = obj.removesuffix("s") if verb == "list" else obj
 
-    known = {"url", "as", "fixture", "token-url", "timeout-ms"}
+    known = {"url", "as", "anonymous", "fixture", "token-url", "timeout-ms"}
+    if operation in ("get-topics", "listen-mqtt"):
+        known |= {"scope", "id"}
+    if operation == "listen-mqtt":
+        known |= {"topic-operation", "messages", "listen-ms"}
     if verb == "list":
         known |= {"skip", "limit"} | set(LIST_FILTERS[obj]) | ({"targets"} if obj in TARGET_FILTER else set())
-    if verb in ("get", "update", "delete"):
+    if not notifier and verb in ("get", "update", "delete"):
         known.add("id")
-    if verb in ("create", "update"):
+    if not notifier and verb in ("create", "update"):
         known.add("body")
     given = flags(rest, known)
 
-    for name in ("url", "as") + (("id",) if "id" in known else ()) + (("body",) if "body" in known else ()):
+    required = ["url"]
+    if not notifier:
+        required += [name for name in ("id", "body") if name in known]
+    elif "scope" in known:
+        required.append("scope")
+    for name in required:
         if name not in given:
             raise UsageError(f"--{name} is required")
+    if ("as" in given) == ("anonymous" in given):
+        raise UsageError("one of --as and --anonymous is required")
     url = given["url"].rstrip("/")
     if not re.match(r"^https?://[^/\s]+(/[^\s]*)?$", url):
         raise UsageError(f"--url: {given['url']!r} is not an http or https URL")
@@ -166,7 +226,23 @@ def parse_client(args: list[str]) -> dict:
         "operation": operation, "verb": verb, "object": obj, "url": url, "token_url": token_url,
         "timeout": number("timeout-ms", given.get("timeout-ms", "10000"), 1, 600000) / 1000,
         "filters": {}, "targets": None, "pagination": None, "id": None, "body": None,
+        "scope": None, "topic_operation": "all", "messages": 1, "listen": 10.0,
     }
+    if "scope" in given:
+        if given["scope"] not in TOPIC_SCOPES:
+            raise UsageError(f"--scope: {given['scope']!r} is not one of {', '.join(TOPIC_SCOPES)}")
+        request["scope"] = given["scope"]
+        of = TOPIC_SCOPES[given["scope"]][1]
+        if (of is None) != ("id" not in given):
+            raise UsageError(f"--scope {given['scope']} takes the ID of a {of}" if of else f"--scope {given['scope']} takes no --id")
+    if "topic-operation" in given:
+        if given["topic-operation"] not in TOPIC_OPERATIONS:
+            raise UsageError(f"--topic-operation: {given['topic-operation']!r} is not one of {', '.join(TOPIC_OPERATIONS)}")
+        request["topic_operation"] = given["topic-operation"]
+    if "messages" in given:
+        request["messages"] = number("messages", given["messages"], 1, 1000)
+    if "listen-ms" in given:
+        request["listen"] = number("listen-ms", given["listen-ms"], 1, 600000) / 1000
     if "id" in given:
         request["id"] = object_id("id", given["id"])
     if "body" in given:
@@ -187,6 +263,20 @@ def parse_client(args: list[str]) -> dict:
         if "skip" in given or "limit" in given:
             request["pagination"] = (number("skip", given.get("skip", "0"), 0, 2**31 - 1),
                                      number("limit", given.get("limit", "50"), 0, 2**31 - 1))
+
+    if "anonymous" in given:
+        # No client of the fixture, and no token: for a VTN that asks for none.
+        if given["anonymous"] not in ("bl", "ven"):
+            raise UsageError(f"--anonymous: {given['anonymous']!r} is not bl or ven")
+        if token_url is not None:
+            raise UsageError("--anonymous takes no --token-url")
+        if obj == "resource-group":
+            raise UsageError("the library has no anonymous client for resource groups")
+        who = {"name": "anonymous", "role": given["anonymous"], "clientId": None, "clientSecret": None}
+        if operation not in CLIENT_OPERATIONS[who["role"]]:
+            raise UsageError(f"{operation} is not available to a {who['role']} client of this library")
+        request["client"] = who
+        return request
 
     # The client is one of the fixture: its credentials never appear on a
     # command line.

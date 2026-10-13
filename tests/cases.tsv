@@ -71,3 +71,22 @@ rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-resource --as ve
 ro	descriptors	0	ok=true error=- status=200 n=1	client:clientReportDescriptorsInPrograms	list-programs --as ven-1
 ro	baseline	0	ok=true error=- status=200 n=0	-	list-vens --as ven-3
 rw	baseline	0	ok=true error=- status=200 n=1	-	delete-ven --as bl --id @ven:site-2@
+# Contract 1.3: notifiers, MQTT topics, subscriptions, resource groups and a
+# client without a token.
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,server:serverNotifiersWebhook	get-notifiers --as ven-1
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,server:serverNotifiersWebhook	get-notifiers --as bl
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope programs
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope events
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope program-events --id @program:day-ahead@
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as ven-1 --scope ven-events --id @ven:site-1@
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as ven-1 --scope ven-programs --id @ven:site-1@
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,client:clientTopicsOfOneObject	get-topics --as bl --scope program --id @program:day-ahead@
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-subscriptions --as ven-1
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-subscriptions --as bl
+ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-subscription --as ven-1 --id no-such-subscription
+ro	baseline	1	ok=false error=invalid-request status=- n=0	-	create-subscription --as ven-1 --body {"clientName":"site-1"}
+ro	baseline	0	ok=true error=- status=200 n=0	server:serverResourceGroups	list-resource-groups --as bl
+ro	baseline	0	ok=true error=- status=200 n=0	server:serverResourceGroups	list-resource-groups --as ven-1
+ro	baseline	1	ok=false error=http-error status=404 n=0	server:serverResourceGroups	get-resource-group --as bl --id no-such-group
+rw	baseline	0	ok=true error=- status=201 n=1	server:serverResourceGroups	create-resource-group --as bl --body {"resourceGroupName":"street","targets":["group-a"]}
+ro	baseline	1	ok=false error=http-error status=401 n=0	-	list-programs --anonymous ven

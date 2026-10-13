@@ -32,7 +32,7 @@ Every image has the licence texts of what it contains under `/licenses`.
 | Component | Licence | In the image |
 |-----------|---------|--------------|
 | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) 2.4.0 | Apache-2.0 | `/licenses/packages/openadr3_client-2.4.0/` |
-| Its Python dependencies, as locked in [adapters/elaadnl/requirements.txt](adapters/elaadnl/requirements.txt): pydantic, pydantic-core, pydantic-extra-types, annotated-types, typing-extensions, typing-inspection (MIT); requests, requests-oauthlib (Apache-2.0, ISC); oauthlib, idna, pycparser (BSD-3-Clause); urllib3, charset-normalizer, cffi, pyjwt (MIT); certifi (MPL-2.0); cryptography (Apache-2.0 OR BSD-3-Clause); pycountry (LGPL-2.1) | As declared by each package: `/licenses/packages/PACKAGES.txt` | `/licenses/packages/<package>-<version>/` |
+| Its Python dependencies, as locked in [adapters/elaadnl/requirements.txt](adapters/elaadnl/requirements.txt): pydantic, pydantic-core, pydantic-extra-types, annotated-types, typing-extensions, typing-inspection (MIT); requests, requests-oauthlib (Apache-2.0, ISC); oauthlib, idna, pycparser (BSD-3-Clause); urllib3, charset-normalizer, cffi, pyjwt (MIT); certifi (MPL-2.0); cryptography (Apache-2.0 OR BSD-3-Clause); pycountry (LGPL-2.1); paho-mqtt (EPL-2.0 OR BSD-3-Clause), which the library's `mqtt` extra brings | As declared by each package: `/licenses/packages/PACKAGES.txt` | `/licenses/packages/<package>-<version>/` |
 | Python 3.14 and the Debian base image | PSF-2.0; various | `/licenses/python/LICENSE.txt`; Debian's `/usr/share/doc/*/copyright` |
 | The adapter | MIT | `/licenses/openadr-interop/LICENSE` |
 

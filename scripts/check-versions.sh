@@ -45,6 +45,29 @@ done
 # The conformance suite reports the version of this repository.
 suite=$(sed -nE 's/^const version = "([^"]+)"$/\1/p' conformance/cmd/openadr-interop/main.go)
 need "conformance suite version" "interop_version: \"${suite}\""
+# The documents name the same version, and the same contract.
+release=$(sed -nE 's/^interop_version: "([^"]+)".*/\1/p' versions.yaml)
+contract=$(sed -nE 's/^contract_version: "([^"]+)".*/\1/p' versions.yaml)
+doc() {  # doc <file> <description> <text the file must contain>
+    if grep -qF -- "$3" "$1"; then
+        echo "ok   $1: $2"
+    else
+        echo "FAIL $1: $2: no \"$3\""
+        status=1
+    fi
+}
+doc README.md "status" "**Status: v${release}**, container contract ${contract},"
+doc README.md "release link" "releases/tag/v${release})"
+doc PLAN.md "release" "## v${release} (released)"
+doc docs/CONTAINER_CONTRACT.md "contract version" "Version: **${contract}**"
+doc docs/CONTAINER_CONTRACT.md "contract history" "| ${contract} | "
+newest=$(sed -nE 's/^## (v[0-9]+\.[0-9]+\.[0-9]+) \([0-9]{4}-[0-9]{2}-[0-9]{2}\)$/\1/p' RELEASE.md | head -1)
+if [[ "${newest}" == "v${release}" ]] && ! grep -qE '^## Unreleased' RELEASE.md; then
+    echo "ok   RELEASE.md: newest entry ${newest}"
+else
+    echo "FAIL RELEASE.md: the newest dated entry is ${newest:-none}, not v${release}, or an entry is headed Unreleased"
+    status=1
+fi
 if [[ "${found}" -eq 0 ]]; then
     echo "FAIL no adapter Dockerfile found"
     status=1

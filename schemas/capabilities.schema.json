@@ -149,7 +149,20 @@
               "get-resource",
               "create-resource",
               "update-resource",
-              "delete-resource"
+              "delete-resource",
+              "list-subscriptions",
+              "get-subscription",
+              "create-subscription",
+              "update-subscription",
+              "delete-subscription",
+              "list-resource-groups",
+              "get-resource-group",
+              "create-resource-group",
+              "update-resource-group",
+              "delete-resource-group",
+              "get-notifiers",
+              "get-topics",
+              "listen-mqtt"
             ]
           }
         },
@@ -181,7 +194,20 @@
               "get-resource",
               "create-resource",
               "update-resource",
-              "delete-resource"
+              "delete-resource",
+              "list-subscriptions",
+              "get-subscription",
+              "create-subscription",
+              "update-subscription",
+              "delete-subscription",
+              "list-resource-groups",
+              "get-resource-group",
+              "create-resource-group",
+              "update-resource-group",
+              "delete-resource-group",
+              "get-notifiers",
+              "get-topics",
+              "listen-mqtt"
             ]
           }
         }

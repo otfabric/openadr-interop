@@ -1,6 +1,6 @@
 # Container contract
 
-Version: **1.2** (`contract_version` in [versions.yaml](../versions.yaml))
+Version: **1.3** (`contract_version` in [versions.yaml](../versions.yaml))
 
 Every adapter image exposes the same commands, flags, JSON documents and exit
 codes. Consumers depend on this document, not on any adapter's source. A
@@ -13,6 +13,7 @@ and changes only with the major version.
 | 1.0 | First release |
 | 1.1 | A server may run an MQTT broker (feature `serverMqtt`): `--mqtt-port`, `--mqtt-public-url`, `mqttUrl` in the `ready` event, 1883/tcp |
 | 1.2 | A server may announce itself with DNS-SD over Multicast DNS (feature `serverMdns`): `--mdns-name`, `mdnsName` in the `ready` event. An image may look for VTNs (feature `mdnsDiscover`): the command `discover` |
+| 1.3 | Client operations on subscriptions and on resource groups, `get-notifiers`, `get-topics` and `listen-mqtt`; a client without a token, `--anonymous ROLE` in place of `--as` (feature `clientAnonymous`) |
 
 An adapter has the server role, the client role, or both. What an image
 lacks it says in [`print-capabilities`](#print-capabilities); a command or
@@ -140,18 +141,20 @@ Runs one bounded operation as an OpenADR client and prints one result
 document.
 
 ```text
-openadr-interop client <operation> --url URL --as CLIENT [common flags] [operation flags]
+openadr-interop client <operation> --url URL (--as CLIENT | --anonymous ROLE) [common flags] [operation flags]
 ```
 
 Every operation: obtain a token with the OAuth2 client-credentials grant,
-send one request to the VTN, decode the answer.
+send one request to the VTN, decode the answer. `listen-mqtt` goes on from
+there, see below.
 
 ### Common flags
 
 | Flag | Default | Meaning |
 |------|---------|---------|
 | `--url URL` | required | URL of the VTN's API, the one `/programs` is appended to |
-| `--as CLIENT` | required | Name of a client of the fixture, such as `bl` or `ven-1`. Its role decides whether the library's Business Logic or VEN client is used |
+| `--as CLIENT` | required, or `--anonymous` | Name of a client of the fixture, such as `bl` or `ven-1`. Its role decides whether the library's Business Logic or VEN client is used |
+| `--anonymous ROLE` | | In place of `--as`, with the feature `clientAnonymous`: the library's `bl` or `ven` client without a token, for a VTN that asks for none. No token is requested, `--token-url` is a usage error, and the result document names the client `anonymous` |
 | `--fixture PATH` | `/fixtures/baseline/fixture.json` | Where the client's ID and secret are taken from |
 | `--token-url URL` | discovered | Token endpoint. Without it the client asks the VTN (`GET /auth/server`); only with the feature `clientTokenDiscovery` |
 | `--timeout-ms N` | 10000 | Timeout of each HTTP exchange, 1..600000 |
@@ -162,7 +165,9 @@ or with a wrong secret, mount a fixture that says so.
 
 ### Operations
 
-For each of `program`, `event`, `report`, `ven` and `resource`:
+For each of `program`, `event`, `report`, `ven`, `resource`, `subscription`
+and `resource-group` (`/resource_groups`, an extension to OpenADR 3.1.0 that
+some VTNs serve):
 
 | Operation | Request | Flags |
 |-----------|---------|-------|
@@ -181,6 +186,8 @@ Search filters, each optional:
 | `list-reports` | `--program-id ID`, `--event-id ID`, `--client-name NAME` |
 | `list-vens` | `--targets T,T,...`, `--ven-name NAME` |
 | `list-resources` | `--targets T,T,...`, `--ven-id ID`, `--resource-name NAME` |
+| `list-subscriptions` | `--program-id ID`, `--client-name NAME` |
+| `list-resource-groups` | `--targets T,T,...`, `--resource-group-name NAME` |
 | all | `--skip N`, `--limit N`: given one, the other defaults to 0 and 50 |
 
 `--body` is the request object in the JSON form of the specification
@@ -197,6 +204,43 @@ error, and nothing is sent. A value that cannot be right — an ID with
 characters an object ID cannot have, a body that is not a JSON object — is a
 usage error too.
 
+### Notifiers and MQTT
+
+| Operation | Request | Flags |
+|-----------|---------|-------|
+| `get-notifiers` | `GET /notifiers` | |
+| `get-topics` | `GET /notifiers/mqtt/topics/...` | `--scope SCOPE`, and `--id ID` where the scope is about one object |
+| `listen-mqtt` | `GET /notifiers`, the request of `get-topics`, then MQTT | those of `get-topics`, `--topic-operation`, `--messages N`, `--listen-ms N` |
+
+`--scope` names the topics asked for:
+
+| Scope | Path below `/notifiers/mqtt/topics` | `--id` |
+|-------|--------------------------------------|--------|
+| `programs`, `events`, `reports`, `subscriptions`, `vens`, `resources` | `/<scope>` | |
+| `program` | `/programs/{id}` | a program |
+| `program-events` | `/programs/{id}/events` | a program |
+| `ven` | `/vens/{id}` | a ven |
+| `ven-events`, `ven-programs`, `ven-resources` | `/vens/{id}/events`, `/programs`, `/resources` | a ven |
+
+`listen-mqtt` connects the library's MQTT client to the first broker the VTN
+names, subscribes to one topic of the scope and waits for notifications.
+Neither the broker nor the topic is given on the command line: they are what
+the library read from the VTN.
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--topic-operation OP` | `all` | Which topic of the scope: `all`, `create`, `update` or `delete` |
+| `--messages N` | 1 | How many notifications to wait for, 1..1000 |
+| `--listen-ms N` | 10000 | How long to wait for them, 1..600000 |
+
+It succeeds when it has received `--messages` notifications, and then
+`response` is `{ "broker", "topic", "messages": [{ "topic", "payload" }] }`,
+with each payload as JSON when it is JSON. Too few in time is the error
+`timeout`; a broker that cannot be reached is `connect-failed`, and one that
+refuses the client or the subscription is `failed`. The client says on stderr
+when it has subscribed, which is for people: a consumer that publishes while
+the client listens keeps publishing until the client returns.
+
 ### Result document
 
 Exactly one JSON object on one line of stdout, for every invocation that got
@@ -207,7 +251,7 @@ past argument parsing, including failures.
 | `schemaVersion` | string | `"1.0"` |
 | `adapter` | string | Adapter that ran the operation |
 | `operation` | string | As given on the command line |
-| `client` | string | The fixture client, as given with `--as` |
+| `client` | string | The fixture client, as given with `--as`; `anonymous` with `--anonymous` |
 | `role` | string | Its role: `bl` or `ven` |
 | `ok` | boolean | The VTN answered with success and the library decoded the answer |
 | `error` | object or null | `{ "code", "message" }` when `ok` is false |
@@ -225,10 +269,10 @@ default is present.
 
 | Code | Meaning | Exit |
 |------|---------|------|
-| `connect-failed` | No connection to the VTN or to its token endpoint | 3 |
+| `connect-failed` | No connection to the VTN or to its token endpoint; `listen-mqtt`: or to the broker | 3 |
 | `auth-failed` | No token: the token endpoint could not be found, or refused the client | 1 |
 | `http-error` | The VTN answered the operation with an error status; see `status` and `problem` | 1 |
-| `timeout` | The VTN did not answer in time | 1 |
+| `timeout` | The VTN did not answer in time; `listen-mqtt`: too few notifications in time | 1 |
 | `invalid-request` | The library refused the request body. Nothing was sent | 1 |
 | `invalid-response` | The VTN answered with success, and the library could not decode the answer | 1 |
 | `failed` | Anything else; see `message` | 1 |
@@ -296,5 +340,6 @@ from the image.
 - Field names and exit codes are stable within a major contract version.
   Fields may be added in a minor version; consumers ignore fields they do not
   know.
-- Every wait of a client is bounded by `--timeout-ms`. No client operation
-  runs indefinitely.
+- Every wait of a client is bounded by `--timeout-ms`, and that of
+  `listen-mqtt` for notifications by `--listen-ms`. No client operation runs
+  indefinitely.

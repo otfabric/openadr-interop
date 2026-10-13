@@ -9,13 +9,16 @@ Test OpenADR 3 libraries against established implementations including the OpenL
 | `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) 2.4.0 | Python | no | yes | `ghcr.io/otfabric/openadr-interop-elaadnl` |
 
 OpenADR 3.1.0: programs, events, reports, VENs and resources, with OAuth2
-client credentials, and MQTT notifications from the reference VTN.
-Subscriptions and webhooks are not covered yet. The stacks do not all do the same, and each image says what it
-supports (`print-capabilities`); see [docs/CAPABILITIES.md](docs/CAPABILITIES.md).
+client credentials. The reference VTN also has MQTT notifications, resource
+groups and DNS-SD discovery; the reference client also has subscriptions,
+notifiers, MQTT topics and an MQTT listener, resource groups and access
+without a token. Neither receives webhooks. The stacks do not all do the
+same, and each image says what it supports (`print-capabilities`); see
+[docs/CAPABILITIES.md](docs/CAPABILITIES.md).
 
-**Status: v0.1.0**, the first release, for linux/amd64 and linux/arm64. The
-digests of its images are in the `manifest.json` of the
-[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.1.0).
+**Status: v0.4.0**, container contract 1.3, for linux/amd64 and linux/arm64.
+The digests of its images are in the `manifest.json` of the
+[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.4.0).
 See [PLAN.md](PLAN.md) and [RELEASE.md](RELEASE.md).
 
 **Docs:** [docs/CONTAINER_CONTRACT.md](docs/CONTAINER_CONTRACT.md) (commands, JSON documents, exit codes) · [docs/FIXTURES.md](docs/FIXTURES.md) (what a reference VTN holds) · [docs/CAPABILITIES.md](docs/CAPABILITIES.md) · [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) (pins, cross-stack matrix, findings) · [conformance/](conformance/README.md) (the specification-driven test suite) · [REQUIREMENTS.md](REQUIREMENTS.md) · [PLAN.md](PLAN.md) · [RELEASE.md](RELEASE.md)

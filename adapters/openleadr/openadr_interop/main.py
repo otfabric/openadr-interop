@@ -92,6 +92,11 @@ def capabilities() -> dict:
             # The image can look for VTNs with OpenLEADR's client library:
             # the command `discover`.
             "mdnsDiscover": True,
+            # GET /notifiers names MQTT and WEBSOCKET and leaves out WEBHOOK,
+            # which the specification requires: OpenLEADR has no webhooks.
+            "serverNotifiersWebhook": False,
+            # The VTN serves /resource_groups, an extension to OpenADR 3.1.0.
+            "serverResourceGroups": True,
             "clientTokenDiscovery": False,
             "clientReportDescriptorsInPrograms": False,
         },

@@ -33,10 +33,16 @@ release's `manifest.json`.
 An MQTT broker in the `openleadr` image, and authorization scenarios in the
 conformance suite.
 
-## v0.3.0 (unreleased)
+## v0.3.0 (released)
 
-Done: DNS-SD over Multicast DNS in the `openleadr` image, both to be found
+DNS-SD over Multicast DNS in the `openleadr` image, both to be found
 (`serverMdns`) and to find (`discover`).
+
+## v0.4.0 (released)
+
+The `elaadnl` client beyond the five object types: subscriptions,
+resource groups, notifiers, MQTT topics, listening on the broker, and a
+client without a token.
 
 ## Later
 

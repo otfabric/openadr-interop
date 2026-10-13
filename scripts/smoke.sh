@@ -53,6 +53,7 @@ if jq -e --arg a "${ADAPTER}" '
         and (.clientOperations.bl | type == "array") and (.clientOperations.ven | type == "array")' <<<"${caps}" >/dev/null 2>&1
 then ok "print-capabilities"; else fail "print-capabilities is not a valid capability document: ${caps}"; fi
 if [[ $(wc -l <<<"${caps}") -eq 1 ]]; then ok "print-capabilities is one line"; else fail "print-capabilities printed more than one line"; fi
+has() { jq -e --arg f "$1" '.features[$f] == true' <<<"${caps}" >/dev/null 2>&1; }
 has_role() { jq -e --arg r "$1" '.roles[$r] == true' <<<"${caps}" >/dev/null 2>&1; }
 offers() { jq -e --arg role "$1" --arg op "$2" '.clientOperations[$role] | index($op) != null' <<<"${caps}" >/dev/null 2>&1; }
 
@@ -96,6 +97,21 @@ if has_role client; then
     expect_exit 2 "a body that is not an object" "${IMAGE}" client create-program --url http://nowhere --as bl --body '[]'
     expect_exit 2 "a limit that is not a number" "${IMAGE}" client list-programs --url http://nowhere --as bl --limit many
     expect_exit 2 "a missing fixture" "${IMAGE}" client list-programs --url http://nowhere --as bl --fixture /no/such/fixture.json
+    if offers ven get-topics; then
+        expect_exit 2 "topics without --scope" "${IMAGE}" client get-topics --url http://nowhere --as bl
+        expect_exit 2 "a scope that is not one" "${IMAGE}" client get-topics --url http://nowhere --as bl --scope everything
+        expect_exit 2 "a scope that needs an ID, without one" "${IMAGE}" client get-topics --url http://nowhere --as ven-1 --scope ven-events
+        expect_exit 2 "a scope that takes no ID, with one" "${IMAGE}" client get-topics --url http://nowhere --as bl --scope programs --id abc
+    fi
+    if offers ven listen-mqtt; then
+        expect_exit 2 "listening for no messages" "${IMAGE}" client listen-mqtt --url http://nowhere --as bl --scope programs --messages 0
+        expect_exit 2 "a topic operation that is not one" "${IMAGE}" client listen-mqtt --url http://nowhere --as bl --scope programs --topic-operation read
+    fi
+    if has clientAnonymous; then
+        expect_exit 2 "both --as and --anonymous" "${IMAGE}" client list-programs --url http://nowhere --as bl --anonymous bl
+        expect_exit 2 "an anonymous role that is not one" "${IMAGE}" client list-programs --url http://nowhere --anonymous admin
+        expect_exit 2 "an operation the library does not offer the anonymous role" "${IMAGE}" client create-program --url http://nowhere --anonymous ven --body '{"programName":"p"}'
+    fi
     if ! offers ven create-program; then
         expect_exit 2 "an operation the library does not offer the role" "${IMAGE}" client create-program --url http://nowhere --as ven-1 --body '{"programName":"p"}'
     fi

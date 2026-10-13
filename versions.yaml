@@ -3,8 +3,8 @@
 # The Dockerfiles are the source of truth for a build:
 # scripts/check-versions.sh fails when this file disagrees with them.
 
-interop_version: "0.3.0"
-contract_version: "1.2"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
+interop_version: "0.4.0"
+contract_version: "1.3"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
 fixture_schema: "1.0"          # fixtures/schema/openadr-fixture.schema.json
 
 protocol:
@@ -24,7 +24,7 @@ specification:
 implementations:
   openleadr:
     priority: P0
-    status: unpublished          # built and self-tested locally; no image is published yet
+    status: published            # ghcr.io/otfabric/openadr-interop-openleadr, digests in each release's manifest.json
     upstream: "OpenLEADR openleadr-rs"
     repository: "https://github.com/OpenLEADR/openleadr-rs"
     version: "v0.2.7"            # latest release (2026-10-06)
@@ -46,7 +46,7 @@ implementations:
 
   elaadnl:
     priority: P0
-    status: unpublished
+    status: published            # ghcr.io/otfabric/openadr-interop-elaadnl
     upstream: "ElaadNL openadr3-client"
     repository: "https://github.com/ElaadNL/openadr3-client"
     artifact: "pypi:openadr3-client"
