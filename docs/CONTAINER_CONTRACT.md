@@ -1,6 +1,6 @@
 # Container contract
 
-Version: **1.1** (`contract_version` in [versions.yaml](../versions.yaml))
+Version: **1.2** (`contract_version` in [versions.yaml](../versions.yaml))
 
 Every adapter image exposes the same commands, flags, JSON documents and exit
 codes. Consumers depend on this document, not on any adapter's source. A
@@ -12,6 +12,7 @@ and changes only with the major version.
 |---------|--------|
 | 1.0 | First release |
 | 1.1 | A server may run an MQTT broker (feature `serverMqtt`): `--mqtt-port`, `--mqtt-public-url`, `mqttUrl` in the `ready` event, 1883/tcp |
+| 1.2 | A server may announce itself with DNS-SD over Multicast DNS (feature `serverMdns`): `--mdns-name`, `mdnsName` in the `ready` event. An image may look for VTNs (feature `mdnsDiscover`): the command `discover` |
 
 An adapter has the server role, the client role, or both. What an image
 lacks it says in [`print-capabilities`](#print-capabilities); a command or
@@ -71,6 +72,7 @@ Runs a VTN that serves one fixture until it receives SIGTERM or SIGINT.
 | `--public-url URL` | `http://<container hostname>:<port>` | The URL of the API as clients reach it |
 | `--mqtt-port N` | 1883 | Listen port of the MQTT broker. Only with the feature `serverMqtt` |
 | `--mqtt-public-url URL` | `mqtt://<container hostname>:<mqtt port>` | The broker as clients reach it, `mqtt://host:port`. Only with the feature `serverMqtt` |
+| `--mdns-name NAME` | `openadr-interop-<adapter>` | The instance name under which the VTN announces itself as `_openadr3._tcp`: 1 to 63 letters, digits, spaces, `_` and `-`. Only with the feature `serverMdns` |
 | `--ready-file PATH` | `/run/openadr-interop/ready` | Readiness file |
 
 The API is served at the root of `--public-url`: `<url>/programs`,
@@ -129,7 +131,7 @@ One JSON object per line on stdout.
 
 | `event` | Other fields | When |
 |---------|--------------|------|
-| `ready` | `adapter`, `address` (`ip:port`), `url`, `tokenUrl`, `fixture`; `mqttUrl` with the feature `serverMqtt` | Once, when the VTN serves the fixture |
+| `ready` | `adapter`, `address` (`ip:port`), `url`, `tokenUrl`, `fixture`; `mqttUrl` with the feature `serverMqtt`; `mdnsName` with the feature `serverMdns` | Once, when the VTN serves the fixture |
 | `stopped` | | Once, after a clean stop |
 
 ## `client`
@@ -236,6 +238,28 @@ default is present.
 `invalid-response` is the finding this contract exists to surface: two
 implementations that each consider themselves correct and do not understand
 each other.
+
+## `discover`
+
+Only with the feature `mdnsDiscover`. Looks for VTNs on the local network
+with the implementation's own DNS-SD browser, for the service type
+`_openadr3._tcp`, and prints one JSON object:
+
+```json
+{"schemaVersion":"1.0","adapter":"openleadr","vtns":[{"url":"https://vtn.local:8443/openadr3"}]}
+```
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--timeout SECONDS` | 10 | How long to look, 1 to 300. The command returns earlier once it has found a VTN |
+
+`url` is what the implementation takes as the address of a VTN, which for
+OpenLEADR is the `local_url` of the TXT record. Finding none is an empty
+list and exit 0. Multicast DNS reaches the containers of one Docker network,
+not the host: run the command on the network of what it is to find.
+
+A server with the feature `serverMdns` announces the host name and the
+address of its container, and the port it listens on.
 
 ## `print-capabilities`
 

@@ -77,7 +77,8 @@ def argon2id(secret: str) -> str:
 class Vtn:
     """PostgreSQL and the VTN, started together and stopped together."""
 
-    def __init__(self, port: int, public_url: str, mqtt_port: int, mqtt_url: str) -> None:
+    def __init__(self, port: int, public_url: str, mqtt_port: int, mqtt_url: str, mdns_name: str) -> None:
+        self.mdns_name = mdns_name
         self.port = port
         self.public_url = public_url
         self.mqtt_port = mqtt_port
@@ -179,6 +180,21 @@ class Vtn:
             "MQTT_PASSWORD": self.mqtt_password,
             "RUST_LOG": os.environ.get("RUST_LOG", "warn"),
         }
+        # The VTN announces itself with DNS-SD over Multicast DNS, as
+        # _openadr3._tcp: under this instance name, at the host name and
+        # the address of the container, which is where others on its
+        # network reach it. (Left to itself it would announce 127.0.0.1.)
+        host = socket.gethostname()
+        try:
+            address = socket.gethostbyname(host)
+        except OSError:
+            address = "127.0.0.1"
+        env.update({
+            "MDNS_SERVER_NAME": self.mdns_name,
+            "MDNS_HOST_NAME": f"{host}.local.",
+            "MDNS_IP_ADDRESS": address,
+            "MDNS_BASE_PATH": "",
+        })
         self.vtn = subprocess.Popen([VTN_BINARY], env=env, stdout=sys.stderr, stderr=sys.stderr)  # pylint: disable=consider-using-with
         # The VTN applies its database migrations before it serves /health.
         deadline = time.monotonic() + START_TIMEOUT
@@ -267,7 +283,7 @@ class Vtn:
         shutil.rmtree(self.workdir, ignore_errors=True)
 
 
-def serve(fixture: dict, port: int, public_url: str, mqtt_port: int, mqtt_url: str, ready_file: str) -> int:
+def serve(fixture: dict, port: int, public_url: str, mqtt_port: int, mqtt_url: str, mdns_name: str, ready_file: str) -> int:
     stopping = False
 
     def on_signal(_signum, _frame) -> None:
@@ -277,7 +293,7 @@ def serve(fixture: dict, port: int, public_url: str, mqtt_port: int, mqtt_url: s
     signal.signal(signal.SIGTERM, on_signal)
     signal.signal(signal.SIGINT, on_signal)
 
-    vtn = Vtn(port, public_url, mqtt_port, mqtt_url)
+    vtn = Vtn(port, public_url, mqtt_port, mqtt_url, mdns_name)
     try:
         vtn.start_postgres()
         vtn.start_broker(fixture)
@@ -292,7 +308,7 @@ def serve(fixture: dict, port: int, public_url: str, mqtt_port: int, mqtt_url: s
         return 1
 
     emit({"event": "ready", "adapter": ADAPTER, "address": f"0.0.0.0:{port}", "url": public_url,
-          "tokenUrl": f"{public_url}/auth/token", "mqttUrl": mqtt_url, "fixture": fixture["name"]})
+          "tokenUrl": f"{public_url}/auth/token", "mqttUrl": mqtt_url, "mdnsName": mdns_name, "fixture": fixture["name"]})
     code = 0
     while not stopping:
         if vtn.vtn.poll() is not None or vtn.postgres.poll() is not None or vtn.broker.poll() is not None:

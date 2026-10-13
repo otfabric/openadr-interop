@@ -109,6 +109,30 @@ durations, not strings.
 aliases for the VEN variants. The adapter gives the fixture's clients the
 scopes OpenLEADR's own test fixture gives each role.
 
+**What it announces by mDNS is not quite what the Definition lists.** Built
+with its `mdns` feature, the VTN registers `_openadr3._tcp` with a TXT record
+of `version`, `base_path` and `local_url`. `version` is `3.1`, where the
+Definition's example is `3.1.0`; `local_url` is built from the host name with
+its trailing dot (`http://vtn.local.:8080/`) and is always `http`; and
+`requires_auth` and `program_names` are absent. Left to itself it announces
+the address 127.0.0.1 and the host `vtn.local.`: the adapter sets both from
+its container (`MDNS_IP_ADDRESS`, `MDNS_HOST_NAME`).
+
+**Its responder answers by multicast only.** A query from a port other than
+5353, which RFC 6762 calls a one-shot query and asks a responder to answer
+directly, is answered to the whole network like any other. A browser that
+only waits for a direct answer does not find the VTN; Avahi and Apple's
+mDNSResponder do answer such a query directly. Listen on the Multicast DNS
+port.
+
+**Its client takes a VTN by `local_url`.** `discover_local_vtns` skips a VTN
+whose TXT record has no `local_url`, and returns that URL as it stands.
+
+**A closed WebSocket keeps its place.** The VTN allows one WebSocket per
+client and notices that one has gone only when it fails to send to it: until
+then a new one is answered 409. (WebSocket notifications are OpenLEADR's
+extension, not OpenADR 3.1.0.)
+
 ### ElaadNL openadr3-client 2.4.0
 
 **A program with a report payload descriptor is an invalid response**

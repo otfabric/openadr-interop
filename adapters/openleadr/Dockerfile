@@ -40,7 +40,10 @@ RUN set -eu; \
 # The queries are checked against the cached .sqlx metadata, not a live
 # database. Dynamic linking of the C library, as upstream's own Dockerfile.
 RUN SQLX_OFFLINE=true RUSTFLAGS="-Ctarget-feature=-crt-static" \
-    cargo build --release --locked --bin openleadr-vtn --features internal-oauth
+    cargo build --release --locked --bin openleadr-vtn --features internal-oauth,mdns
+# The discovery of OpenLEADR's client library, as its own example program.
+RUN SQLX_OFFLINE=true RUSTFLAGS="-Ctarget-feature=-crt-static" \
+    cargo build --release --locked -p openleadr-client --example discover_vtns --features mdns
 
 COPY adapters/openleadr/collect-licenses.sh /collect-licenses.sh
 RUN set -eu; \
@@ -51,6 +54,7 @@ RUN set -eu; \
     cp -R "${doc}/COPYRIGHT-library.html" "${doc}/licenses" /out/licenses/rust-std/ 2>/dev/null \
         || cp "${doc}"/COPYRIGHT* /out/licenses/rust-std/; \
     cp target/release/openleadr-vtn /out/openleadr-vtn; \
+    cp target/release/examples/discover_vtns /out/openleadr-discover; \
     printf '{"adapterVersion":"%s","upstreamVersion":"%s","upstreamRevision":"%s"}\n' \
         "${ADAPTER_VERSION}" "${UPSTREAM_VERSION}" "$(git rev-parse HEAD)" > /out/build-info.json
 
@@ -71,6 +75,7 @@ RUN set -eu; \
     python3 -c 'import sys; assert sys.version_info >= (3, 11)'
 
 COPY --from=build /out/openleadr-vtn /usr/local/bin/openleadr-vtn
+COPY --from=build /out/openleadr-discover /usr/local/bin/openleadr-discover
 COPY --from=build /out/licenses /licenses
 COPY --from=build /out/build-info.json /opt/openadr-interop/build-info.json
 COPY adapters/openleadr/openadr_interop /opt/openadr-interop/openadr_interop

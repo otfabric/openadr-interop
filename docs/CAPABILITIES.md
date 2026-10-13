@@ -31,6 +31,8 @@ Schema: [schemas/capabilities.schema.json](../schemas/capabilities.schema.json).
 | `serverInvalidTokenIs401` | A bearer token the VTN did not issue is answered 401 |
 | `serverTargetsMustBeNamed` | A VEN sees a program or event that has targets only when its search names a target it was granted |
 | `serverMqtt` | The image runs an MQTT broker and the VTN publishes its notifications there (contract 1.1) |
+| `serverMdns` | The VTN announces itself with DNS-SD over Multicast DNS, as `_openadr3._tcp` (contract 1.2). Optional: an image that does not name it has not got it |
+| `mdnsDiscover` | The image has the command `discover`, which looks for VTNs with the implementation's own browser (contract 1.2). Optional likewise |
 | `clientTokenDiscovery` | Without `--token-url` the client finds the token endpoint with `GET /auth/server` |
 | `clientReportDescriptorsInPrograms` | The client reads a program whose `payloadDescriptors` hold a report payload descriptor |
 
@@ -51,6 +53,8 @@ says which is which.
 | `serverInvalidTokenIs401` | no | |
 | `serverTargetsMustBeNamed` | no | |
 | `serverMqtt` | yes | |
+| `serverMdns` | yes | |
+| `mdnsDiscover` | yes | |
 | `clientTokenDiscovery` | | yes |
 | `clientReportDescriptorsInPrograms` | | no |
 

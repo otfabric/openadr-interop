@@ -28,10 +28,15 @@ release's `manifest.json`.
 2. Report the findings of docs/COMPATIBILITY.md upstream (OpenLEADR,
    ElaadNL) and the two specification faults to the specification's authors.
 
-## v0.2.0 (unreleased)
+## v0.2.0 (released)
 
-Done: an MQTT broker in the `openleadr` image, and authorization scenarios
-in the conformance suite.
+An MQTT broker in the `openleadr` image, and authorization scenarios in the
+conformance suite.
+
+## v0.3.0 (unreleased)
+
+Done: DNS-SD over Multicast DNS in the `openleadr` image, both to be found
+(`serverMdns`) and to find (`discover`).
 
 ## Later
 

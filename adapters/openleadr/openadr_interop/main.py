@@ -18,7 +18,8 @@ _FIXTURE_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 USAGE = """usage:
   openadr-interop server [--fixture PATH] [--bind-address ADDR] [--port N] [--public-url URL]
-                         [--mqtt-port N] [--mqtt-public-url URL] [--ready-file PATH]
+                         [--mqtt-port N] [--mqtt-public-url URL] [--mdns-name NAME] [--ready-file PATH]
+  openadr-interop discover [--timeout SECONDS]
   openadr-interop print-capabilities
   openadr-interop print-fixture [NAME]
   openadr-interop version
@@ -85,6 +86,12 @@ def capabilities() -> dict:
             # The image runs an MQTT broker next to the VTN, and the VTN
             # publishes its notifications there.
             "serverMqtt": True,
+            # The VTN announces itself with DNS-SD over Multicast DNS, as
+            # _openadr3._tcp.
+            "serverMdns": True,
+            # The image can look for VTNs with OpenLEADR's client library:
+            # the command `discover`.
+            "mdnsDiscover": True,
             "clientTokenDiscovery": False,
             "clientReportDescriptorsInPrograms": False,
         },
@@ -94,7 +101,7 @@ def capabilities() -> dict:
 
 
 def cmd_server(args: list[str]) -> int:
-    given = flags(args, {"fixture", "bind-address", "port", "public-url", "mqtt-port", "mqtt-public-url", "ready-file"})
+    given = flags(args, {"fixture", "bind-address", "port", "public-url", "mqtt-port", "mqtt-public-url", "mdns-name", "ready-file"})
 
     def port_of(flag: str, default: str) -> int:
         text = given.get(flag, default)
@@ -114,6 +121,9 @@ def cmd_server(args: list[str]) -> int:
     public_url = given.get("public-url", f"http://{socket.gethostname()}:{port}").rstrip("/")
     if not re.match(r"^https?://[^/\s]+(/[^\s]*)?$", public_url):
         raise UsageError(f"--public-url: {public_url!r} is not an http or https URL")
+    mdns_name = given.get("mdns-name", "openadr-interop-openleadr")
+    if not re.match(r"^[A-Za-z0-9][A-Za-z0-9 _-]{0,62}$", mdns_name):
+        raise UsageError(f"--mdns-name: {mdns_name!r} is not an instance name of 1 to 63 letters, digits, spaces, '_' and '-'")
     path = given.get("fixture", f"{FIXTURES_DIR}/baseline/fixture.json")
     try:
         fixture = load(path)
@@ -123,7 +133,45 @@ def cmd_server(args: list[str]) -> int:
 
     from .server import serve  # pylint: disable=import-outside-toplevel
 
-    return serve(fixture, port, public_url, mqtt_port, mqtt_url, given.get("ready-file", "/run/openadr-interop/ready"))
+    return serve(fixture, port, public_url, mqtt_port, mqtt_url, mdns_name, given.get("ready-file", "/run/openadr-interop/ready"))
+
+
+DISCOVER_BINARY = "/usr/local/bin/openleadr-discover"
+
+
+def cmd_discover(args: list[str]) -> int:
+    """Look for VTNs on the local network with OpenLEADR's client library.
+
+    The binary is the example of openleadr-client, as its authors wrote it:
+    it browses _openadr3._tcp for a second and logs the local_url of each
+    VTN it resolved. It is run until the time is up or it found one.
+    """
+    import subprocess  # pylint: disable=import-outside-toplevel
+    import time  # pylint: disable=import-outside-toplevel
+
+    given = flags(args, {"timeout"})
+    text = given.get("timeout", "10")
+    if not text.isdigit() or not 1 <= int(text) <= 300:
+        raise UsageError(f"--timeout: {text!r} is not a number of seconds from 1 to 300")
+    deadline = time.monotonic() + int(text)
+    urls: list[str] = []
+    while True:
+        try:
+            done = subprocess.run([DISCOVER_BINARY], env={"RUST_LOG": "info", "NO_COLOR": "1"}, capture_output=True,
+                                  text=True, timeout=30, check=False)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            print(f"openadr-interop: discovery failed: {exc}", file=sys.stderr)
+            return 1
+        # A line per VTN: "... INFO discover_vtns:   1. http://host:port/".
+        for line in (done.stdout + done.stderr).splitlines():
+            found = re.search(r"\s\d+\.\s+(\S+://\S+)\s*$", re.sub(r"\x1b\[[0-9;]*m", "", line))
+            if found and found.group(1) not in urls:
+                urls.append(found.group(1))
+        if urls or time.monotonic() > deadline:
+            break
+    print(json.dumps({"schemaVersion": SCHEMA_VERSION, "adapter": ADAPTER, "vtns": [{"url": u} for u in urls]},
+                     separators=(",", ":")))
+    return 0
 
 
 def cmd_print_fixture(args: list[str]) -> int:
@@ -149,6 +197,8 @@ def main(argv: list[str]) -> int:
         command, rest = argv[0], argv[1:]
         if command == "server":
             return cmd_server(rest)
+        if command == "discover":
+            return cmd_discover(rest)
         if command == "print-capabilities":
             if rest:
                 raise UsageError("print-capabilities takes no arguments")

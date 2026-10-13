@@ -21,7 +21,31 @@ The `Upstream candidates` workflow runs every Monday and on demand. For each ada
 
 ---
 
-## Unreleased (planned v0.2.0)
+## Unreleased (planned v0.3.0)
+
+## Summary
+
+DNS-SD over Multicast DNS in the OpenLEADR reference image: its VTN
+announces itself, and the image can look for VTNs with OpenLEADR's client
+library. Contract 1.2: an addition, nothing a consumer of 1.1 has to change.
+
+## Changes
+
+### Added
+
+- **The OpenLEADR VTN announces itself** as `_openadr3._tcp` (the feature `serverMdns`): OpenLEADR is now built with its `mdns` feature, and the adapter gives it the host name and the address of its container. `--mdns-name` sets the instance name, and the `ready` event carries it as `mdnsName`.
+- **`discover`** (the feature `mdnsDiscover`): looks for VTNs on the local network with `discover_local_vtns` of `openleadr-client`, built as its own example program, and prints what it found as JSON.
+
+### Upstream notes
+
+Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
+- OpenLEADR v0.2.7 announces `version=3.1` and a `local_url` with the trailing dot of the host name, and neither `requires_auth` nor `program_names`.
+- Its mDNS responder answers by multicast only, also where RFC 6762 asks for a direct answer.
+
+---
+
+## v0.2.0 (2026-10-13)
 
 ## Summary
 
