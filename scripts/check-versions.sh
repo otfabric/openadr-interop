@@ -61,11 +61,11 @@ doc README.md "release link" "releases/tag/v${release})"
 doc PLAN.md "release" "## v${release} (released)"
 doc docs/CONTAINER_CONTRACT.md "contract version" "Version: **${contract}**"
 doc docs/CONTAINER_CONTRACT.md "contract history" "| ${contract} | "
-newest=$(sed -nE 's/^## (v[0-9]+\.[0-9]+\.[0-9]+) \([0-9]{4}-[0-9]{2}-[0-9]{2}\)$/\1/p' RELEASE.md | head -1)
+newest=$(sed -nE 's/^## (v[0-9]+\.[0-9]+\.[0-9]+)$/\1/p' RELEASE.md | head -1)
 if [[ "${newest}" == "v${release}" ]] && ! grep -qE '^## Unreleased' RELEASE.md; then
     echo "ok   RELEASE.md: newest entry ${newest}"
 else
-    echo "FAIL RELEASE.md: the newest dated entry is ${newest:-none}, not v${release}, or an entry is headed Unreleased"
+    echo "FAIL RELEASE.md: the newest entry is ${newest:-none}, not v${release}, or an entry is headed Unreleased"
     status=1
 fi
 if [[ "${found}" -eq 0 ]]; then

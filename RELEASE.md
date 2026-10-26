@@ -3,9 +3,16 @@
 ## How a release is made
 
 1. `make ci` on the commit to release.
-2. Update `interop_version` in `versions.yaml`, the `version` constant of the conformance suite, the status line and release link of README.md, the heading in PLAN.md, and the notes below under a heading `## vX.Y.Z (date)`. `make validate` (`scripts/check-versions.sh`) fails when any of these names another version, or when the contract version of `versions.yaml` and docs/CONTAINER_CONTRACT.md differ.
-3. Tag `vX.Y.Z` and push the tag. The release workflow runs one job on an amd64 runner and one on an arm64 runner: each validates, builds every image natively with `ADAPTER_VERSION` set to the tag, runs the smoke test, the cross-stack self-test and the conformance suite on those images and pushes exactly them to GHCR as `<image>:vX.Y.Z-amd64` and `-arm64`. A last job joins the two into the multi-arch `<image>:vX.Y.Z` and creates the GitHub release with `manifest.json` (upstream pins and the digests of the multi-arch images) and `checksums.txt`.
+2. Update `interop_version` in `versions.yaml`, the `version` constant of the conformance suite, the status line and release link of README.md, the heading in PLAN.md, and the notes below under a heading `## vX.Y.Z` with a `**Date:**` line. `make validate` (`scripts/check-versions.sh`, `scripts/release-notes.sh`) fails when any of these names another version, when RELEASE.md has no notes for `interop_version`, or when the contract version of `versions.yaml` and docs/CONTAINER_CONTRACT.md differ.
+3. Tag `vX.Y.Z` and push the tag. The release workflow runs one job on an amd64 runner and one on an arm64 runner: each validates (including the notes of the tag), builds every image natively with `ADAPTER_VERSION` set to the tag, runs the smoke test, the cross-stack self-test and the conformance suite on those images and pushes exactly them to GHCR as `<image>:vX.Y.Z-amd64` and `-arm64`. A last job joins the two into the multi-arch `<image>:vX.Y.Z` and creates the GitHub release with `manifest.json` (upstream pins and the digests of the multi-arch images) and `checksums.txt`.
 4. Consumers pin the digests from `manifest.json`.
+
+The notes are the body of the GitHub release, followed by the image digests:
+everything after the heading `## vX.Y.Z` up to the next line that is exactly
+`---` (`scripts/release-notes.sh vX.Y.Z` prints it). This is the format of
+every otfabric repository and the rule of the shared release workflow, so:
+one section per version, newest first, each ending with a `---` line, and no
+`---` line inside a section.
 
 Tags are immutable. A fix is a new version.
 
@@ -21,7 +28,9 @@ The `Upstream candidates` workflow runs every Monday and on demand. For each ada
 
 ---
 
-## v0.4.0 (2026-10-13)
+## v0.4.0
+
+**Date:** 2026-10-13
 
 ## Summary
 
@@ -61,7 +70,9 @@ Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ---
 
-## v0.3.0 (2026-10-13)
+## v0.3.0
+
+**Date:** 2026-10-13
 
 ## Summary
 
@@ -85,7 +96,9 @@ Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ---
 
-## v0.2.0 (2026-10-13)
+## v0.2.0
+
+**Date:** 2026-10-13
 
 ## Summary
 
@@ -109,7 +122,9 @@ Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ---
 
-## v0.1.0 (2026-10-12)
+## v0.1.0
+
+**Date:** 2026-10-12
 
 ## Summary
 
@@ -139,3 +154,5 @@ Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 - A client role for `openleadr`; a second server.
 - Subscriptions, webhooks, MQTT; OpenADR 3.0.x.
+
+---

@@ -57,8 +57,9 @@ ci: validate lint conformance-test images documents conformance ## Full local CI
 
 # ── Validation ───────────────────────────────────────────────────────────────
 
-validate: ## Validate every fixture against the schema and the cross-field rules; check versions.yaml
+validate: ## Validate every fixture against the schema and the cross-field rules; check versions.yaml and RELEASE.md
 	@scripts/check-versions.sh
+	@scripts/release-notes.sh > /dev/null && echo "ok   RELEASE.md has the notes of interop_version"
 	@cmp -s adapters/openleadr/openadr_interop/fixture.py adapters/elaadnl/openadr_interop/fixture.py \
 		|| { echo "adapters/*/openadr_interop/fixture.py differ: the adapters must agree on what a valid fixture is"; exit 1; }
 	@echo "Validating fixtures..."
