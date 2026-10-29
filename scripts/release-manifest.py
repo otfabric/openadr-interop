@@ -24,6 +24,14 @@ def arg(adapter, name):
     return match.group(1).strip() if match else ""
 
 
+def protocol_versions():
+    """The OpenADR versions of protocol.versions in versions.yaml."""
+    match = re.search(r'^protocol:\n(?:  .*\n)*?  versions: (\[[^\]]*\])', (ROOT / "versions.yaml").read_text(), re.M)
+    if not match:
+        raise SystemExit("versions.yaml has no protocol.versions")
+    return json.loads(match.group(1))
+
+
 def manifest_value(key):
     match = re.search(rf'^{key}: "([^"]+)"', (ROOT / "versions.yaml").read_text(), re.M)
     if not match:
@@ -56,7 +64,7 @@ def main():
         "commit": commit,
         "contract": manifest_value("contract_version"),
         "fixtureSchema": manifest_value("fixture_schema"),
-        "openadrVersions": ["3.1.0"],
+        "openadrVersions": protocol_versions(),
         "platforms": ["linux/amd64", "linux/arm64"],
         "upstream": upstream,
         "images": images,
