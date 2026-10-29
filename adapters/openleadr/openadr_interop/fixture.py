@@ -13,7 +13,9 @@ import os
 import re
 
 SCHEMA_VERSION = "1.0"
-OPENADR_VERSIONS = ("3.1.0",)
+OPENADR_VERSIONS = ("3.1.0", "3.0.1")
+# The fixture each revision's servers default to.
+BASELINE = {"3.1.0": "baseline", "3.0.1": "baseline-301"}
 
 _LABEL = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 _CLIENT_ID = re.compile(r"^[a-zA-Z0-9_-]{1,128}$")
@@ -31,16 +33,26 @@ def _name(where: str, value: object) -> str:
     return value
 
 
-def _targets(where: str, value: object) -> None:
+def _targets(where: str, value: object, version: str) -> None:
+    """Targets are strings in OpenADR 3.1.0, valuesMap objects in 3.0.1."""
     if value is None:
         return
-    if not isinstance(value, list) or len(set(map(str, value))) != len(value):
+    if not isinstance(value, list) or len(set(json.dumps(v, sort_keys=True) for v in value)) != len(value):
         raise FixtureError(f"{where} must be a list of distinct targets")
     for item in value:
-        _name(f"{where}[]", item)
+        if version == "3.0.1":
+            if not isinstance(item, dict) or set(item) != {"type", "values"}:
+                raise FixtureError(f"{where}[] must be an object of type and values (OpenADR 3.0.1)")
+            _name(f"{where}[].type", item["type"])
+            values = item["values"]
+            if not isinstance(values, list) or not values or not all(isinstance(v, (str, int, float, bool)) for v in values):
+                raise FixtureError(f"{where}[].values must be a non-empty list of strings, numbers or booleans")
+        else:
+            _name(f"{where}[]", item)
 
 
 def _objects(doc: dict, key: str, required: tuple[str, ...], allowed: tuple[str, ...] | None) -> list[dict]:
+    version = doc.get("openadrVersion")
     items = doc.get(key)
     if not isinstance(items, list):
         raise FixtureError(f"{key} must be a list")
@@ -52,7 +64,7 @@ def _objects(doc: dict, key: str, required: tuple[str, ...], allowed: tuple[str,
                 raise FixtureError(f"{key}[{i}] has no {name}")
         if allowed is not None and set(item) - set(allowed):
             raise FixtureError(f"{key}[{i}] has unknown properties: {sorted(set(item) - set(allowed))}")
-        _targets(f"{key}[{i}].targets", item.get("targets"))
+        _targets(f"{key}[{i}].targets", item.get("targets"), version)
     return items
 
 
@@ -142,6 +154,13 @@ def load(path: str) -> dict:
     except ValueError as exc:
         raise FixtureError(f"{path} is not JSON: {exc}") from exc
     return validate(doc, os.path.basename(os.path.dirname(os.path.abspath(path))))
+
+
+def served(doc: dict, versions: tuple[str, ...]) -> dict:
+    """Refuse a fixture of a revision the adapter does not serve."""
+    if doc["openadrVersion"] not in versions:
+        raise FixtureError(f"the fixture is of OpenADR {doc['openadrVersion']}; this adapter serves {', '.join(versions)}")
+    return doc
 
 
 def client(doc: dict, name: str) -> dict | None:

@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        adapter: [openleadr, elaadnl]
+        adapter: [openleadr, elaadnl, openleadr301]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -161,8 +161,8 @@ jobs:
             echo "### Pin locations"
             echo
             echo "Every adapter pins its upstream as \`ARG UPSTREAM_VERSION\` in \`adapters/<name>/Dockerfile\`"
-            echo "(openleadr also \`UPSTREAM_SHA\`), mirrored in \`versions.yaml\`. The lock file of elaadnl"
-            echo "(\`adapters/elaadnl/requirements.txt\`) moves with it; OpenLEADR is built against its own \`Cargo.lock\`."
+            echo "(openleadr and openleadr301 also \`UPSTREAM_SHA\`), mirrored in \`versions.yaml\`. The lock file of elaadnl"
+            echo "(\`adapters/elaadnl/requirements.txt\`) moves with it; OpenLEADR is built against its own \`Cargo.lock\`; openleadr301 follows v0.1.x only."
             echo
             echo "### How to read this"
             echo
@@ -208,10 +208,10 @@ jobs:
             echo "## To update"
             echo
             echo '```sh'
-            echo "make candidate-<adapter> CANDIDATE_VERSION=<version>   # reproduce locally; openleadr also CANDIDATE_SHA=<commit>"
+            echo "make candidate-<adapter> CANDIDATE_VERSION=<version>   # reproduce locally; openleadr and openleadr301 also CANDIDATE_SHA=<commit>"
             echo '```'
             echo
-            echo "Then move \`ARG UPSTREAM_VERSION\` (openleadr also \`UPSTREAM_SHA\`) in"
+            echo "Then move \`ARG UPSTREAM_VERSION\` (openleadr and openleadr301 also \`UPSTREAM_SHA\`) in"
             echo "\`adapters/<adapter>/Dockerfile\`, the adapter's lock file and \`versions.yaml\`, and record"
             echo "the change in \`docs/COMPATIBILITY.md\` and \`RELEASE.md\`. A release that fails the"
             echo "self-tests stays a candidate: list its bug in \`tests/known-bugs.tsv\`. See CONTRIBUTING.md."

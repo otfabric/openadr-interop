@@ -27,6 +27,19 @@ Every image has the licence texts of what it contains under `/licenses`.
 | Alpine Linux base image, musl, OpenSSL and the rest of its packages | Various; see Alpine's package database | as above |
 | The adapter | MIT | `/licenses/openadr-interop/LICENSE` |
 
+## Image `openadr-interop-openleadr301`
+
+| Component | Licence | In the image |
+|-----------|---------|--------------|
+| [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) v0.1.4, the `openleadr-vtn` binary | Apache-2.0 OR MIT | `/licenses/openleadr/` |
+| The Rust crates compiled into it (236) | Mostly MIT or Apache-2.0; each is listed with the licence it declares in `/licenses/crates/CRATES.txt` | `/licenses/crates/<crate>-<version>/`. Three crates ship no licence text and are listed in `NO-TEXT.txt` |
+| The Rust standard library | MIT OR Apache-2.0, with the notices of what it bundles | `/licenses/rust-std/` |
+| PostgreSQL 17 (Alpine package), the VTN's database | PostgreSQL licence | Alpine's package database; versions in `/licenses/alpine/PACKAGES.txt` |
+| Python 3 (Alpine package), runs the adapter | PSF-2.0 | as above |
+| argon2 (Alpine package), hashes the fixture's client secrets | CC0-1.0 OR Apache-2.0 | as above |
+| Alpine Linux base image, musl, OpenSSL and the rest of its packages | Various; see Alpine's package database | as above |
+| The adapter | MIT | `/licenses/openadr-interop/LICENSE` |
+
 ## Image `openadr-interop-elaadnl`
 
 | Component | Licence | In the image |

@@ -44,6 +44,18 @@ The `elaadnl` client beyond the five object types: subscriptions,
 resource groups, notifiers, MQTT topics, listening on the broker, and a
 client without a token.
 
+## v0.5.0 (released)
+
+A server of OpenADR 3.0.1: the `openleadr301` image, OpenLEADR v0.1.4, the
+last release of OpenADR 3.0. Fixtures of either revision, the
+`baseline-301` fixture, and pairings by shared revision.
+
+| Check | Result |
+|---|---|
+| `make smoke` | openleadr 33, elaadnl 44, openleadr301 32 checks |
+| `make interop` | elaadnl → openleadr: 73 pass, 5 skipped on capabilities; elaadnl → openleadr301 not paired (3.1.0 against 3.0.1) |
+| `make conformance` | openleadr: 20 of 24, 4 known findings; openleadr301 not run (the suite is of 3.1.0) |
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:
@@ -58,8 +70,12 @@ client without a token.
 - **Subscriptions and notifications**: webhook delivery, MQTT topic
   discovery and delivery. OpenLEADR supports MQTT and not webhooks; the
   contract needs a way for a client to wait for a notification.
-- **OpenADR 3.0.1**: ElaadNL's client speaks it; OpenLEADR does not. It
-  needs a 3.0.1 server before it is worth a fixture.
+- **A client of OpenADR 3.0.1**, so that `openleadr301` is in a pairing
+  and the cross-stack cases run in 3.0.1 too (with cases of `baseline-301`).
+  The pinned ElaadNL client is of 3.1.0; whether an earlier release speaks
+  3.0.1 has not been checked.
+- **Conformance scenarios of 3.0.1**, asserting its own OpenAPI document,
+  so that `make conformance` covers `openleadr301`.
 - **Resilience**: restarts and connection failures in the middle of a
   workflow.
 

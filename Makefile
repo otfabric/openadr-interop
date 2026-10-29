@@ -31,9 +31,10 @@ BUILDER ?= openadr-interop
 
 # Adapters with a published image, in priority order. The self-tests run over
 # all of them; override to work on one: make smoke ADAPTERS=elaadnl
-ADAPTERS ?= openleadr elaadnl
+ADAPTERS ?= openleadr elaadnl openleadr301
 
-# Adapters with the server role: the conformance suite runs against these.
+# The servers the conformance suite runs against. The suite asserts the
+# OpenADR 3.1.0 OpenAPI document, so openleadr301 (3.0.1) is not one of them.
 SERVER_ADAPTERS ?= openleadr
 
 image = $(REGISTRY)/openadr-interop-$(1)
@@ -60,8 +61,8 @@ ci: validate lint conformance-test images documents conformance ## Full local CI
 validate: ## Validate every fixture against the schema and the cross-field rules; check versions.yaml and RELEASE.md
 	@scripts/check-versions.sh
 	@scripts/release-notes.sh > /dev/null && echo "ok   RELEASE.md has the notes of interop_version"
-	@cmp -s adapters/openleadr/openadr_interop/fixture.py adapters/elaadnl/openadr_interop/fixture.py \
-		|| { echo "adapters/*/openadr_interop/fixture.py differ: the adapters must agree on what a valid fixture is"; exit 1; }
+	@for f in adapters/*/openadr_interop/fixture.py; do cmp -s adapters/openleadr/openadr_interop/fixture.py $$f \
+		|| { echo "$$f differs from adapters/openleadr: the adapters must agree on what a valid fixture is"; exit 1; }; done
 	@echo "Validating fixtures..."
 	@if python3 -c 'import jsonschema' 2>/dev/null; then \
 		python3 scripts/validate-fixtures.py --require-schema; \

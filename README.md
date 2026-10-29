@@ -7,6 +7,7 @@ Test OpenADR 3 libraries against established implementations including the OpenL
 |---------|----------------|----------|:------:|:------:|-------|
 | `openleadr` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) v0.2.7 | Rust | yes | no | `ghcr.io/otfabric/openadr-interop-openleadr` |
 | `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) 2.4.0 | Python | no | yes | `ghcr.io/otfabric/openadr-interop-elaadnl` |
+| `openleadr301` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) v0.1.4, OpenADR **3.0.1** | Rust | yes | no | `ghcr.io/otfabric/openadr-interop-openleadr301` |
 
 OpenADR 3.1.0: programs, events, reports, VENs and resources, with OAuth2
 client credentials. The reference VTN also has MQTT notifications, resource
@@ -16,9 +17,16 @@ without a token. Neither receives webhooks. The stacks do not all do the
 same, and each image says what it supports (`print-capabilities`); see
 [docs/CAPABILITIES.md](docs/CAPABILITIES.md).
 
-**Status: v0.4.0**, container contract 1.3, for linux/amd64 and linux/arm64.
+OpenADR 3.0.1: `openleadr301` is a VTN of the earlier revision, OpenLEADR's
+last release of OpenADR 3.0, with the `baseline-301` fixture: tokens from
+`/auth/token`, targets as valuesMap objects, resources under their VEN. It
+has no notifications. No reference client speaks 3.0.1 yet, so it is checked
+by `make smoke` and not paired in `make interop`; the conformance suite is
+of 3.1.0 only.
+
+**Status: v0.5.0**, container contract 1.4, for linux/amd64 and linux/arm64.
 The digests of its images are in the `manifest.json` of the
-[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.4.0).
+[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.5.0).
 See [PLAN.md](PLAN.md) and [RELEASE.md](RELEASE.md).
 
 **Docs:** [docs/CONTAINER_CONTRACT.md](docs/CONTAINER_CONTRACT.md) (commands, JSON documents, exit codes) · [docs/FIXTURES.md](docs/FIXTURES.md) (what a reference VTN holds) · [docs/CAPABILITIES.md](docs/CAPABILITIES.md) · [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) (pins, cross-stack matrix, findings) · [conformance/](conformance/README.md) (the specification-driven test suite) · [REQUIREMENTS.md](REQUIREMENTS.md) · [PLAN.md](PLAN.md) · [RELEASE.md](RELEASE.md)
@@ -68,6 +76,7 @@ A reference VTN on loopback, and a reference client against it:
 
 ```sh
 make run-openleadr      # http://127.0.0.1:8080, the baseline fixture; Ctrl-C to stop
+                        # make run-openleadr301: OpenADR 3.0.1, the baseline-301 fixture
 
 docker run --rm --network host ghcr.io/otfabric/openadr-interop-elaadnl:dev \
     client list-events --as ven-1 --url http://127.0.0.1:8080
@@ -98,6 +107,9 @@ docker run --rm ghcr.io/otfabric/openadr-interop-openleadr:dev print-fixture   #
 
 The VTN serves the [baseline fixture](docs/FIXTURES.md): its clients' IDs
 and secrets, and the objects to expect, are what `print-fixture` prints.
+For a client of OpenADR 3.0.1, use `openadr-interop-openleadr301` the same
+way; it serves `baseline-301` (`print-fixture baseline-301`), and the token
+URL is `<url>/auth/token`.
 
 **To test a VTN**, load the same fixture into it — register the clients,
 create the objects — and run reference client operations against it:

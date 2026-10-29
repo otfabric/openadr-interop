@@ -1,6 +1,6 @@
 # Container contract
 
-Version: **1.3** (`contract_version` in [versions.yaml](../versions.yaml))
+Version: **1.4** (`contract_version` in [versions.yaml](../versions.yaml))
 
 Every adapter image exposes the same commands, flags, JSON documents and exit
 codes. Consumers depend on this document, not on any adapter's source. A
@@ -14,6 +14,7 @@ and changes only with the major version.
 | 1.1 | A server may run an MQTT broker (feature `serverMqtt`): `--mqtt-port`, `--mqtt-public-url`, `mqttUrl` in the `ready` event, 1883/tcp |
 | 1.2 | A server may announce itself with DNS-SD over Multicast DNS (feature `serverMdns`): `--mdns-name`, `mdnsName` in the `ready` event. An image may look for VTNs (feature `mdnsDiscover`): the command `discover` |
 | 1.3 | Client operations on subscriptions and on resource groups, `get-notifiers`, `get-topics` and `listen-mqtt`; a client without a token, `--anonymous ROLE` in place of `--as` (feature `clientAnonymous`) |
+| 1.4 | OpenADR 3.0.1: `"3.0.1"` in `openadrVersions`, fixtures of either revision (`openadrVersion`), and the default fixture of a server is the baseline of the revision it serves (`baseline-301` for 3.0.1). A fixture of a revision the image does not serve is invalid: exit 4 for `server`, a usage error for `client` |
 
 An adapter has the server role, the client role, or both. What an image
 lacks it says in [`print-capabilities`](#print-capabilities); a command or
@@ -67,9 +68,9 @@ Runs a VTN that serves one fixture until it receives SIGTERM or SIGINT.
 
 | Flag | Default | Meaning |
 |------|---------|---------|
-| `--fixture PATH` | `/fixtures/baseline/fixture.json` | Fixture to serve |
+| `--fixture PATH` | `/fixtures/baseline/fixture.json`; `/fixtures/baseline-301/fixture.json` for a server of OpenADR 3.0.1 only | Fixture to serve. It must be of a revision the server serves (`openadrVersions`) |
 | `--bind-address ADDR` | `0.0.0.0` | Listen address. An adapter whose VTN cannot choose accepts `0.0.0.0` only |
-| `--port N` | 8080 | Listen port |
+| `--port N` | 8080 | Listen port. `openleadr301` refuses 3000, its VTN's own port inside the image |
 | `--public-url URL` | `http://<container hostname>:<port>` | The URL of the API as clients reach it |
 | `--mqtt-port N` | 1883 | Listen port of the MQTT broker. Only with the feature `serverMqtt` |
 | `--mqtt-public-url URL` | `mqtt://<container hostname>:<mqtt port>` | The broker as clients reach it, `mqtt://host:port`. Only with the feature `serverMqtt` |
@@ -82,7 +83,9 @@ The API is served at the root of `--public-url`: `<url>/programs`,
 to be told the URL under which its clients reach it**. The default suits
 clients on the same Docker network that use the container's host name; a
 server started under another name, or published on a host port, needs
-`--public-url`. The token endpoint is `<public-url>/auth/token`.
+`--public-url`. The token endpoint is `<public-url>/auth/token`. OpenADR
+3.0.1 has no `GET /auth/server`: its clients are configured with the token
+URL, which the `ready` event gives as `tokenUrl`.
 
 Lifecycle:
 
@@ -90,6 +93,7 @@ Lifecycle:
    with exit 4 before anything listens. The rules are those of
    `scripts/validate-fixtures.py`, including that `name` is the name of the
    directory the file is in: mount a fixture as `<dir>/<name>/fixture.json`.
+   A fixture whose `openadrVersion` the server does not serve is invalid.
 2. The VTN is started. Failure, including a port that is taken, ends the
    process with a non-zero exit.
 3. The clients of the fixture are registered and its objects are created.
@@ -155,7 +159,7 @@ there, see below.
 | `--url URL` | required | URL of the VTN's API, the one `/programs` is appended to |
 | `--as CLIENT` | required, or `--anonymous` | Name of a client of the fixture, such as `bl` or `ven-1`. Its role decides whether the library's Business Logic or VEN client is used |
 | `--anonymous ROLE` | | In place of `--as`, with the feature `clientAnonymous`: the library's `bl` or `ven` client without a token, for a VTN that asks for none. No token is requested, `--token-url` is a usage error, and the result document names the client `anonymous` |
-| `--fixture PATH` | `/fixtures/baseline/fixture.json` | Where the client's ID and secret are taken from |
+| `--fixture PATH` | `/fixtures/baseline/fixture.json` | Where the client's ID and secret are taken from. A fixture of a revision the client does not speak is a usage error |
 | `--token-url URL` | discovered | Token endpoint. Without it the client asks the VTN (`GET /auth/server`); only with the feature `clientTokenDiscovery` |
 | `--timeout-ms N` | 10000 | Timeout of each HTTP exchange, 1..600000 |
 
@@ -328,7 +332,7 @@ from the image.
 | 1 | The operation failed (see `error.code`); `server`: the VTN could not be started |
 | 2 | Usage error: unknown command, operation or flag, missing or invalid value, a role the adapter or the library does not have. Nothing was sent |
 | 3 | `client`: the connection could not be established |
-| 4 | `server`: the fixture is missing or invalid |
+| 4 | `server`: the fixture is missing or invalid, or of a revision the server does not serve |
 
 ## Output rules
 

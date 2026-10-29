@@ -19,11 +19,11 @@ runs everything CI runs. The first build compiles OpenLEADR and takes several mi
 
 ## Changing an adapter
 
-Edit, then `make image-<adapter> smoke-<adapter> interop`. The two Python adapters share `openadr_interop/fixture.py` byte for byte; `make validate` fails when they differ. Change both.
+Edit, then `make image-<adapter> smoke-<adapter> interop`. Every adapter has the same `openadr_interop/fixture.py`, byte for byte; `make validate` fails when they differ. Change them all.
 
 ## Moving an upstream pin
 
-1. Try it without changing anything: `make candidate-<adapter> CANDIDATE_VERSION=<version>` (and `CANDIDATE_SHA=<commit>` for `openleadr`).
+1. Try it without changing anything: `make candidate-<adapter> CANDIDATE_VERSION=<version>` (and `CANDIDATE_SHA=<commit>` for `openleadr` and `openleadr301`).
 2. A case that fails because of an upstream bug goes into `tests/known-bugs.tsv` or `conformance/known/<adapter>.tsv` for that version, and into docs/COMPATIBILITY.md. A capability that changed goes into the adapter's `print-capabilities`.
 3. Move the pin in the Dockerfile (`ARG UPSTREAM_VERSION`, `ARG UPSTREAM_SHA`) and in `versions.yaml`; for `elaadnl`, regenerate `requirements.txt` as its header says. `make validate` checks that the two agree.
 4. Remove the entries the new version no longer needs: a known bug that does not show fails the run.
@@ -44,7 +44,7 @@ See [docs/FIXTURES.md](docs/FIXTURES.md#adding-a-fixture).
 
 1. `adapters/<name>/` with a Dockerfile that follows the others: base images by digest as `ARG <NAME>_DIGEST`, the upstream pin as `ARG UPSTREAM_VERSION`, a non-root user 10001, the fixtures at `/fixtures`, licence texts at `/licenses`.
 2. The contract: `server` and/or `client`, `print-capabilities`, `print-fixture`, `version`, the exit codes.
-3. `versions.yaml`, `ADAPTERS` (and `SERVER_ADAPTERS`) in the Makefile, the tables in README.md, docs/CAPABILITIES.md, docs/COMPATIBILITY.md and THIRD_PARTY_NOTICES.md.
+3. `versions.yaml`, `ADAPTERS` (and `SERVER_ADAPTERS`, for a server of 3.1.0) in the Makefile, the matrix of `.github/workflows/candidate.yml` and a resolver in `scripts/latest-upstream.py`, the tables in README.md, docs/CAPABILITIES.md, docs/COMPATIBILITY.md and THIRD_PARTY_NOTICES.md.
 4. `make ci`.
 
 ## Adding a conformance scenario

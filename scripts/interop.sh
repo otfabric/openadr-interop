@@ -117,6 +117,31 @@ if [[ ${#CLIENTS[@]} -eq 0 || ${#SERVERS[@]} -eq 0 ]]; then
 fi
 log "clients: ${CLIENTS[*]}; servers: ${SERVERS[*]} (${VERSION})"
 
+# common <client> <server>: the OpenADR versions both speak, comma-separated.
+common() {
+    jq -r -n --slurpfile c "${WORK}/caps-$1.json" --slurpfile s "${WORK}/caps-$2.json" \
+        '[$c[0].openadrVersions[] as $v | select($s[0].openadrVersions | index($v)) | $v] | join(",")'
+}
+# A client and a server are paired only when they share an OpenADR version:
+# a 3.1.0 client has nothing to say to a 3.0.1 VTN.
+PAIRED=0
+for server in "${SERVERS[@]}"; do
+    for cl in "${CLIENTS[@]}"; do
+        shared=$(common "${cl}" "${server}")
+        if [[ -n "${shared}" ]]; then
+            PAIRED=$((PAIRED + 1))
+            log "pair ${cl}->${server}: OpenADR ${shared}"
+        else
+            log "not paired: ${cl}->${server}: no OpenADR version in common (client $(jq -r '.openadrVersions | join(",")' "${WORK}/caps-${cl}.json"), server $(jq -r '.openadrVersions | join(",")' "${WORK}/caps-${server}.json"))"
+        fi
+    done
+done
+if [[ ${PAIRED} -eq 0 ]]; then
+    log "no client and server share an OpenADR version (got: ${ADAPTERS[*]})"
+    exit 2
+fi
+paired() { [[ -n "$(common "$1" "$2")" ]]; }
+
 # client <adapter> <server container> <fixture> <operation and flags...>
 client() {
     local adapter="$1" server="$2" fixture="$3"; shift 3
@@ -182,6 +207,7 @@ while IFS=$'\t' read -r state fixture want_exit want_summary needs operation; do
     for server in "${SERVERS[@]}"; do
         for cl in "${CLIENTS[@]}"; do
             pair="${cl}->${server}"
+            paired "${cl}" "${server}" || continue
             if ! offers "${cl}" "${role}" "${op}" || ! supported "${cl}" "${server}" "${needs}"; then
                 skip "${pair}: ${operation}"; continue
             fi
@@ -213,6 +239,7 @@ check() {
 for server in "${SERVERS[@]}"; do
     for cl in "${CLIENTS[@]}"; do
         pair="${cl}->${server}"
+        paired "${cl}" "${server}" || continue
         if ! offers "${cl}" bl create-program || ! offers "${cl}" bl create-event || ! offers "${cl}" ven create-report; then
             skip "${pair}: workflow"; continue
         fi

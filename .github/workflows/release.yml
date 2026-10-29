@@ -49,8 +49,10 @@ jobs:
           python3 scripts/validate-fixtures.py --require-schema
           want="interop_version: \"${VERSION#v}\""
           grep -qF "$want" versions.yaml || { echo "::error::versions.yaml does not say $want"; exit 1; }
-          cmp -s adapters/openleadr/openadr_interop/fixture.py adapters/elaadnl/openadr_interop/fixture.py \
-            || { echo "::error::the adapters disagree on what a valid fixture is"; exit 1; }
+          for f in adapters/*/openadr_interop/fixture.py; do
+            cmp -s adapters/openleadr/openadr_interop/fixture.py "$f" \
+              || { echo "::error::$f: the adapters disagree on what a valid fixture is"; exit 1; }
+          done
           # The notes of this version become the body of the GitHub release.
           scripts/release-notes.sh "${VERSION}" > /dev/null || { echo "::error::RELEASE.md has no notes for ${VERSION}"; exit 1; }
 
