@@ -15,7 +15,7 @@ Schema: [schemas/capabilities.schema.json](../schemas/capabilities.schema.json).
 | `adapter` | Name of the adapter |
 | `adapterVersion` | Version of this repository the image was built from |
 | `protocol` | `"openadr3"` |
-| `openadrVersions` | Revisions the adapter speaks: `["3.1.0"]` |
+| `openadrVersions` | Revisions the adapter speaks, of `3.1.0` and `3.0.1` (contract 1.4). A client and a server are paired only when they share one |
 | `upstream` | `name`, `version`, `revision`, `license`, `language` of the wrapped implementation; `independentEngine`: it shares no protocol code with another adapter |
 | `roles` | `server`, `client`: booleans |
 | `features` | See below; every feature is present in every document |
@@ -26,7 +26,7 @@ Schema: [schemas/capabilities.schema.json](../schemas/capabilities.schema.json).
 
 | Feature | Meaning when true |
 |---------|-------------------|
-| `serverTokenEndpoint` | The VTN issues tokens itself, at `/auth/token` |
+| `serverTokenEndpoint` | The VTN issues tokens itself, at `/auth/token`. In 3.0.1, which has no `GET /auth/server`, that is where every client goes |
 | `serverVenObjectType` | ven objects carry `objectType: "VEN"` |
 | `serverInvalidTokenIs401` | A bearer token the VTN did not issue is answered 401 |
 | `serverTargetsMustBeNamed` | A VEN sees a program or event that has targets only when its search names a target it was granted |
@@ -50,31 +50,37 @@ says which is which.
 
 ## The adapters
 
-| | `openleadr` | `elaadnl` |
-|---|:---:|:---:|
-| Upstream | OpenLEADR openleadr-rs v0.2.7 | ElaadNL openadr3-client 2.4.0 |
-| Language | Rust | Python |
-| Server role | yes | no |
-| Client role | no | yes |
-| `serverTokenEndpoint` | yes | |
-| `serverVenObjectType` | no | |
-| `serverInvalidTokenIs401` | no | |
-| `serverTargetsMustBeNamed` | no | |
-| `serverMqtt` | yes | |
-| `serverMdns` | yes | |
-| `mdnsDiscover` | yes | |
-| `serverNotifiersWebhook` | no | |
-| `serverResourceGroups` | yes | |
-| `clientTokenDiscovery` | | yes |
-| `clientReportDescriptorsInPrograms` | | no |
-| `clientAnonymous` | | yes |
-| `clientResourceGroups` | | yes |
-| `clientMqtt` | | yes |
-| `clientSubscriptionOperations310` | | no |
-| `clientNotifiersWithoutMqtt` | | no |
-| `clientTopicsOfOneObject` | | no |
+| | `openleadr` | `elaadnl` | `openleadr301` |
+|---|:---:|:---:|:---:|
+| Upstream | OpenLEADR openleadr-rs v0.2.7 | ElaadNL openadr3-client 2.4.0 | OpenLEADR openleadr-rs v0.1.4 |
+| OpenADR | 3.1.0 | 3.1.0 | 3.0.1 |
+| Language | Rust | Python | Rust |
+| Server role | yes | no | yes |
+| Client role | no | yes | no |
+| `serverTokenEndpoint` | yes | | yes |
+| `serverVenObjectType` | no | | yes |
+| `serverInvalidTokenIs401` | no | | no |
+| `serverTargetsMustBeNamed` | no | | no |
+| `serverMqtt` | yes | | no |
+| `serverMdns` | yes | | no |
+| `mdnsDiscover` | yes | | no |
+| `serverNotifiersWebhook` | no | | no |
+| `serverResourceGroups` | yes | | no |
+| `clientTokenDiscovery` | | yes | |
+| `clientReportDescriptorsInPrograms` | | no | |
+| `clientAnonymous` | | yes | |
+| `clientResourceGroups` | | yes | |
+| `clientMqtt` | | yes | |
+| `clientSubscriptionOperations310` | | no | |
+| `clientNotifiersWithoutMqtt` | | no | |
+| `clientTopicsOfOneObject` | | no | |
 
 `elaadnl` offers a Business Logic client every operation except writing
 reports and subscriptions, and a VEN client every operation except writing
 programs, events and resource groups. Both have `get-notifiers`, `get-topics`
 and `listen-mqtt`.
+
+`openleadr301` serves OpenADR 3.0.1 only: no broker, no announcement, no
+notifiers, no subscriptions, no resource groups, and no `--mqtt-port`,
+`--mqtt-public-url`, `--mdns-name` or `discover`. Its server features were
+read off the running VTN; see [COMPATIBILITY.md](COMPATIBILITY.md).

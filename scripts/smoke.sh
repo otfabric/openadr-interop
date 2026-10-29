@@ -56,6 +56,14 @@ if [[ $(wc -l <<<"${caps}") -eq 1 ]]; then ok "print-capabilities is one line"; 
 has() { jq -e --arg f "$1" '.features[$f] == true' <<<"${caps}" >/dev/null 2>&1; }
 has_role() { jq -e --arg r "$1" '.roles[$r] == true' <<<"${caps}" >/dev/null 2>&1; }
 offers() { jq -e --arg role "$1" --arg op "$2" '.clientOperations[$role] | index($op) != null' <<<"${caps}" >/dev/null 2>&1; }
+# The baseline of the revision the adapter serves, and one of a revision it
+# does not serve, if any.
+if jq -e '.openadrVersions | index("3.1.0") != null' <<<"${caps}" >/dev/null 2>&1; then
+    BASE=baseline OTHER=baseline-301
+    jq -e '.openadrVersions | index("3.0.1") != null' <<<"${caps}" >/dev/null 2>&1 && OTHER=
+else
+    BASE=baseline-301 OTHER=baseline
+fi
 
 # ---- the baked fixtures are the repository's ----
 for fixture in "${ROOT}"/fixtures/*/fixture.json; do
@@ -97,6 +105,9 @@ if has_role client; then
     expect_exit 2 "a body that is not an object" "${IMAGE}" client create-program --url http://nowhere --as bl --body '[]'
     expect_exit 2 "a limit that is not a number" "${IMAGE}" client list-programs --url http://nowhere --as bl --limit many
     expect_exit 2 "a missing fixture" "${IMAGE}" client list-programs --url http://nowhere --as bl --fixture /no/such/fixture.json
+    if [[ -n "${OTHER}" ]]; then
+        expect_exit 2 "a fixture of a revision the client does not speak (${OTHER})" "${IMAGE}" client list-programs --url http://nowhere --as bl --fixture "/fixtures/${OTHER}/fixture.json"
+    fi
     if offers ven get-topics; then
         expect_exit 2 "topics without --scope" "${IMAGE}" client get-topics --url http://nowhere --as bl
         expect_exit 2 "a scope that is not one" "${IMAGE}" client get-topics --url http://nowhere --as bl --scope everything
@@ -133,23 +144,26 @@ if has_role server; then
     chmod 755 "${bad}"
     # Each invalid fixture sits in a directory named after it, so that it
     # breaks exactly one rule and not also "name is the directory name".
-    mkdir -p "${bad}"/{good,nobl,ref,dup,broken,name}/baseline "${bad}/name/other"
-    base="${ROOT}/fixtures/baseline/fixture.json"
-    cp "${base}" "${bad}/good/baseline/fixture.json"
-    jq '.clients |= map(select(.role != "bl"))' "${base}" > "${bad}/nobl/baseline/fixture.json"
-    jq '.events[0].program = "no-such-program"' "${base}" > "${bad}/ref/baseline/fixture.json"
-    jq '.programs[1].programName = .programs[0].programName' "${base}" > "${bad}/dup/baseline/fixture.json"
-    echo '{ not json' > "${bad}/broken/baseline/fixture.json"
+    mkdir -p "${bad}"/{good,nobl,ref,dup,broken,name}/"${BASE}" "${bad}/name/other"
+    base="${ROOT}/fixtures/${BASE}/fixture.json"
+    cp "${base}" "${bad}/good/${BASE}/fixture.json"
+    jq '.clients |= map(select(.role != "bl"))' "${base}" > "${bad}/nobl/${BASE}/fixture.json"
+    jq '.events[0].program = "no-such-program"' "${base}" > "${bad}/ref/${BASE}/fixture.json"
+    jq '.programs[1].programName = .programs[0].programName' "${base}" > "${bad}/dup/${BASE}/fixture.json"
+    echo '{ not json' > "${bad}/broken/${BASE}/fixture.json"
     cp "${base}" "${bad}/name/other/fixture.json"
     chmod -R a+rX "${bad}"
-    expect_exit 4 "server with a fixture without a Business Logic client" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture /bad/nobl/baseline/fixture.json
-    expect_exit 4 "server with an event of an unknown program" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture /bad/ref/baseline/fixture.json
-    expect_exit 4 "server with two programs of one name" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture /bad/dup/baseline/fixture.json
-    expect_exit 4 "server with a fixture that is not JSON" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture /bad/broken/baseline/fixture.json
+    expect_exit 4 "server with a fixture without a Business Logic client" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture "/bad/nobl/${BASE}/fixture.json"
+    expect_exit 4 "server with an event of an unknown program" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture "/bad/ref/${BASE}/fixture.json"
+    expect_exit 4 "server with two programs of one name" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture "/bad/dup/${BASE}/fixture.json"
+    expect_exit 4 "server with a fixture that is not JSON" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture "/bad/broken/${BASE}/fixture.json"
     expect_exit 4 "server with a fixture whose name is not its directory" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture /bad/name/other/fixture.json
     expect_exit 4 "server with a missing fixture" "${IMAGE}" server --fixture /no/such/fixture.json
+    if [[ -n "${OTHER}" ]]; then
+        expect_exit 4 "server with a fixture of a revision it does not serve (${OTHER})" "${IMAGE}" server --fixture "/fixtures/${OTHER}/fixture.json"
+    fi
     # The control: the same mount with a valid fixture is served.
-    control=$(docker run -d --network "${NETWORK}" --label "openadr-interop.run=${RUN_ID}" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture /bad/good/baseline/fixture.json)
+    control=$(docker run -d --network "${NETWORK}" --label "openadr-interop.run=${RUN_ID}" -v "${bad}:/bad:ro" "${IMAGE}" server --fixture "/bad/good/${BASE}/fixture.json")
     served=no
     for _ in $(seq 1 300); do
         if docker logs "${control}" 2>/dev/null | grep -q '"event":"ready"'; then served=yes; break; fi
@@ -170,14 +184,14 @@ if ! has_role server; then
     fi
     log "client checks run against the ${SERVER} server"
 fi
-name=$(start_server "${SERVER}")
+name=$(start_server "${SERVER}" --fixture "/fixtures/${BASE}/fixture.json")
 if wait_ready "${name}"; then ok "server becomes ready"; else fail "server did not become ready"; finish; exit 1; fi
 
 if has_role server; then
     # ---- server: the ready event, health, user ----
     first=$(docker logs "${name}" 2>/dev/null | head -1)
-    if jq -e --arg a "${ADAPTER}" --arg url "$(url_of "${name}")" '.event == "ready" and .adapter == $a
-            and .fixture == "baseline" and (.address | type == "string") and .url == $url
+    if jq -e --arg a "${ADAPTER}" --arg base "${BASE}" --arg url "$(url_of "${name}")" '.event == "ready" and .adapter == $a
+            and .fixture == $base and (.address | type == "string") and .url == $url
             and (.tokenUrl | type == "string")' <<<"${first}" >/dev/null 2>&1
     then ok "ready event"; else fail "first stdout line is not the ready event: ${first}"; fi
     if jq -e '.features.serverMqtt == true' <<<"${caps}" >/dev/null 2>&1; then
@@ -191,6 +205,13 @@ if has_role server; then
     if [[ "${health}" == yes ]]; then ok "image has a health check"; else fail "image has no health check"; fi
     user=$(docker exec "${name}" id -u 2>/dev/null)
     if [[ "${user}" == 10001 ]]; then ok "runs as uid 10001"; else fail "runs as uid ${user}, want 10001"; fi
+    if [[ "${BASE}" == baseline-301 ]]; then
+        # ---- what OpenADR 3.0.1 has: a token at /auth/token, valuesMap
+        # targets, and a targeted program seen by its VEN only ----
+        if docker exec -i "${name}" python3 - "http://127.0.0.1:${PORT}" <"${SCRIPT_DIR}/check-301.py" >"${bad}/301.log" 2>&1
+        then while read -r line; do ok "${line}"; done <"${bad}/301.log"
+        else fail "OpenADR 3.0.1 checks: $(tail -1 "${bad}/301.log")"; fi
+    fi
 fi
 
 if has_role client; then

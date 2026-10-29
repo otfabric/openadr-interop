@@ -65,6 +65,14 @@ def openleadr():
     return latest, tags[latest], "git tags of OpenLEADR/openleadr-rs"
 
 
+def openleadr301():
+    # The last releases of OpenADR 3.0: v0.2 and later serve 3.1.0, which
+    # is the openleadr adapter's.
+    tags = {t: c for t, c in git_tags("https://github.com/OpenLEADR/openleadr-rs.git").items() if re.fullmatch(r"v0\.1\.\d+", t)}
+    latest = newest(tags)
+    return latest, tags[latest], "git tags v0.1.* of OpenLEADR/openleadr-rs"
+
+
 def elaadnl():
     releases = json.loads(fetch("https://pypi.org/pypi/openadr3-client/json"))["releases"]
     live = [v for v, files in releases.items() if files and not all(f.get("yanked") for f in files)]
@@ -74,6 +82,7 @@ def elaadnl():
 RESOLVERS = {
     "openleadr": openleadr,
     "elaadnl": elaadnl,
+    "openleadr301": openleadr301,
 }
 
 

@@ -10,10 +10,12 @@ import socket
 import sys
 
 from . import ADAPTER, SCHEMA_VERSION
-from .fixture import FixtureError, load
+from .fixture import FixtureError, load, served
 
 FIXTURES_DIR = "/fixtures"
 BUILD_INFO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "build-info.json")
+# The revisions the VTN serves.
+OPENADR_VERSIONS = ("3.1.0",)
 _FIXTURE_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 USAGE = """usage:
@@ -62,7 +64,7 @@ def capabilities() -> dict:
         "adapter": ADAPTER,
         "adapterVersion": info.get("adapterVersion", "dev"),
         "protocol": "openadr3",
-        "openadrVersions": ["3.1.0"],
+        "openadrVersions": list(OPENADR_VERSIONS),
         "upstream": {
             "name": "OpenLEADR openleadr-rs",
             "version": info.get("upstreamVersion", "unknown"),
@@ -131,7 +133,7 @@ def cmd_server(args: list[str]) -> int:
         raise UsageError(f"--mdns-name: {mdns_name!r} is not an instance name of 1 to 63 letters, digits, spaces, '_' and '-'")
     path = given.get("fixture", f"{FIXTURES_DIR}/baseline/fixture.json")
     try:
-        fixture = load(path)
+        fixture = served(load(path), OPENADR_VERSIONS)
     except FixtureError as exc:
         print(f"openadr-interop: invalid fixture: {exc}", file=sys.stderr)
         return 4

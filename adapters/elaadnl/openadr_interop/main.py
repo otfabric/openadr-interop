@@ -9,10 +9,12 @@ import re
 import sys
 
 from . import ADAPTER, SCHEMA_VERSION
-from .fixture import FixtureError, client as fixture_client, load
+from .fixture import FixtureError, client as fixture_client, load, served
 
 FIXTURES_DIR = "/fixtures"
 BUILD_INFO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "build-info.json")
+# The revision the library speaks.
+OPENADR_VERSIONS = ("3.1.0",)
 _FIXTURE_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _ID = re.compile(r"^[a-zA-Z0-9_-]{1,128}$")
 
@@ -135,7 +137,7 @@ def capabilities() -> dict:
         "adapter": ADAPTER,
         "adapterVersion": info.get("adapterVersion", "dev"),
         "protocol": "openadr3",
-        "openadrVersions": ["3.1.0"],
+        "openadrVersions": list(OPENADR_VERSIONS),
         "upstream": {
             "name": "ElaadNL openadr3-client",
             "version": upstream_version(),
@@ -163,9 +165,9 @@ def capabilities() -> dict:
             "clientResourceGroups": True,
             # listen-mqtt: the library's MQTT client.
             "clientMqtt": True,
-            # The library names the operations of a subscription as OpenADR
-            # 3.0.1 does (GET, POST, PUT, DELETE), not as 3.1.0 does (CREATE,
-            # READ, UPDATE, DELETE).
+            # The library names the operations of a subscription with HTTP
+            # methods (GET, POST, PUT, DELETE), not as 3.1.0 and 3.0.1 do
+            # (CREATE, READ, UPDATE, DELETE).
             "clientSubscriptionOperations310": False,
             # The library reads GET /notifiers without MQTT as an invalid
             # response: its model requires the MQTT binding, which the
@@ -281,7 +283,7 @@ def parse_client(args: list[str]) -> dict:
     # The client is one of the fixture: its credentials never appear on a
     # command line.
     try:
-        fixture = load(given.get("fixture", f"{FIXTURES_DIR}/baseline/fixture.json"))
+        fixture = served(load(given.get("fixture", f"{FIXTURES_DIR}/baseline/fixture.json")), OPENADR_VERSIONS)
     except FixtureError as exc:
         raise UsageError(f"--fixture: {exc}") from exc
     who = fixture_client(fixture, given["as"])

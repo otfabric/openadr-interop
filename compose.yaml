@@ -25,3 +25,9 @@ services:
     command: ["server", "--fixture", "/fixtures/${OPENADR_INTEROP_FIXTURE:-baseline}/fixture.json", "--public-url", "http://127.0.0.1:8080"]
     ports:
       - "127.0.0.1:8080:8080"
+  openleadr301:
+    <<: *server
+    image: ghcr.io/otfabric/openadr-interop-openleadr301:${OPENADR_INTEROP_VERSION:-dev}
+    command: ["server", "--fixture", "/fixtures/baseline-301/fixture.json", "--public-url", "http://127.0.0.1:8301"]
+    ports:
+      - "127.0.0.1:8301:8080"

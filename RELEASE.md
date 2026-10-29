@@ -24,7 +24,56 @@ Tags are immutable. A fix is a new version.
 
 ## Upstream releases
 
-The `Upstream candidates` workflow runs every Monday and on demand. For each adapter it looks up the latest stable upstream release (`scripts/latest-upstream.py`: the git tags of OpenLEADR, PyPI for the ElaadNL client). Where the pin is behind, it builds a candidate image on that release and runs the smoke test, the cross-stack self-test against the other stacks at their pins and, for a server, the conformance suite. The result is a pin-versus-latest table in the job summary and a tracking issue, which is closed once every pin is the latest release again. The pins themselves are never changed by a workflow: [CONTRIBUTING.md](CONTRIBUTING.md#moving-an-upstream-pin) says how to move one.
+The `Upstream candidates` workflow runs every Monday and on demand. For each adapter it looks up the latest stable upstream release (`scripts/latest-upstream.py`: the git tags of OpenLEADR, of v0.1.x only for `openleadr301`, PyPI for the ElaadNL client). Where the pin is behind, it builds a candidate image on that release and runs the smoke test, the cross-stack self-test against the other stacks at their pins and, for a server, the conformance suite. The result is a pin-versus-latest table in the job summary and a tracking issue, which is closed once every pin is the latest release again. The pins themselves are never changed by a workflow: [CONTRIBUTING.md](CONTRIBUTING.md#moving-an-upstream-pin) says how to move one.
+
+---
+
+## v0.5.0
+
+**Date:** 2026-10-29
+
+## Summary
+
+A reference server of OpenADR 3.0.1: `openleadr301`, OpenLEADR openleadr-rs
+v0.1.4, the last release of OpenADR 3.0. Fixtures can be of either
+revision, a new fixture `baseline-301` is the baseline in 3.0.1, and a
+client and a server are paired only when they share a revision. Contract
+1.4 and fixture schema 1.1: additions, nothing a consumer of 1.3 has to
+change.
+
+## Changes
+
+### Added
+
+- **The `openleadr301` image**, `ghcr.io/otfabric/openadr-interop-openleadr301`, for linux/amd64 and linux/arm64: OpenLEADR v0.1.4 (commit `92f4ba12d34cee0458af5846f170996d0b31978f`) with a private PostgreSQL, server role only, `openadrVersions` `["3.0.1"]`. No MQTT, no Multicast DNS, no notifiers. The VTN listens on port 3000 whatever it is told; the adapter forwards `--port` (default 8080) to it and refuses `--port 3000`.
+- **The `baseline-301` fixture**: the clients of `baseline` with the same IDs and secrets, its ven, resource, programs and events, with targets as valuesMap objects. The targeted program and event name `VEN_NAME` `site-1`.
+- **`"3.0.1"`** in `openadrVersions` of the capability schema, and in `openadrVersion` of the fixture schema, whose targets are strings in 3.1.0 and valuesMap objects in 3.0.1.
+- `make smoke` checks of a 3.0.1 server (a token from `/auth/token`, valuesMap targets, a targeted program seen only by its VEN), and of every adapter refusing a fixture of a revision it does not serve or speak.
+
+### Changed
+
+- Every adapter refuses a fixture of a revision it does not serve: exit 4 for `server`, a usage error (exit 2) for `client`. The `openleadr` and `elaadnl` images serve and speak 3.1.0 only, as before.
+- `make interop` pairs a client with a server only when they share an OpenADR version, and logs each pairing and each pair it leaves out. `elaadnl` → `openleadr301` is left out: 3.1.0 against 3.0.1.
+- The conformance suite stays of 3.1.0 and runs against `openleadr` only: it asserts the 3.1.0 OpenAPI document, which 3.0.1 differs from in the shape of every targeted object.
+- The weekly candidate probe covers `openleadr301`, following v0.1.x tags only.
+
+### Fixed
+
+- docs/COMPATIBILITY.md and the `elaadnl` adapter said that ElaadNL openadr3-client 2.4.0 names the operations of a subscription "as OpenADR 3.0.1 did". It does not: 3.0.1 names them `READ`, `CREATE`, `UPDATE` and `DELETE`, as 3.1.0 does. The library names them with HTTP methods, which 3.0.1 uses only for the `operation` of a notification. The v0.4.0 notes below say the same wrong thing.
+
+### Upstream notes
+
+Observed by running v0.1.4 with `baseline-301`; details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
+- No `/subscriptions` (404), which 3.0.1 defines.
+- A VEN cannot delete its own report (403); only Business Logic can. While a report exists, its event and program cannot be deleted (409).
+- `GET /programs?targetType=VEN_NAME&targetValues=…` finds nothing: program targets of that type are kept apart, as the list of VENs that may see the program. A VEN is shown such a program without its targets.
+- A VEN client without a ven sees no programs, not even untargeted ones.
+- A bearer token the VTN did not issue is answered 403, which the 3.0.1 OpenAPI document allows.
+
+### Verification
+
+On arm64: `make validate lint images smoke interop conformance-test documents conformance`. Smoke 33 (`openleadr`), 44 (`elaadnl`) and 32 (`openleadr301`) checks; self-test 73 checks passed and 5 skipped on declared capabilities, `elaadnl` → `openleadr301` not paired; conformance of `openleadr` 20 of 24 scenarios, 4 known findings; 3 capability documents and 65 client results valid against their schemas.
 
 ---
 

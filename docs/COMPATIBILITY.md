@@ -10,6 +10,7 @@ is what CI and the release workflow reproduce on linux/amd64 and linux/arm64.
 |---------|----------|---------|-------|---------|
 | `openleadr` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.2.7, commit `f586cc3c` | server | Apache-2.0 OR MIT |
 | `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) | 2.4.0 (PyPI wheel) | client | Apache-2.0 |
+| `openleadr301` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.1.4, commit `92f4ba12`: the last release of OpenADR 3.0, serving 3.0.1 | server | Apache-2.0 OR MIT |
 
 The full pins, with base image digests, are in [versions.yaml](../versions.yaml).
 
@@ -23,6 +24,19 @@ program → event → report workflow, for every client against every server.
 | `elaadnl` 2.4.0 | `openleadr` v0.2.7 | 73 checks pass, 5 cases skipped on declared capabilities |
 
 The skipped cases are the ones the capabilities below explain.
+
+A client and a server are paired only when they share an OpenADR version
+(`openadrVersions`), and `make interop` says so for each pairing:
+
+```text
+[interop] pair elaadnl->openleadr: OpenADR 3.1.0
+[interop] not paired: elaadnl->openleadr301: no OpenADR version in common (client 3.1.0, server 3.0.1)
+```
+
+No reference client speaks 3.0.1 yet, so `openleadr301` is in no pairing.
+What it does is checked by `make smoke`: a token from `/auth/token` for each
+client, `GET /programs` with valuesMap targets, and the program targeted at
+`site-1` seen by `ven-1` and not by `ven-2`.
 
 Not in the matrix, because the two do not get that far with each other:
 `listen-mqtt` of `elaadnl` on the broker of `openleadr`. The library cannot
@@ -39,6 +53,13 @@ server.
 | Server | Result |
 |--------|--------|
 | `openleadr` v0.2.7 | 20 of 24 scenarios pass; 4 known findings |
+
+The suite asserts the OpenADR 3.1.0 OpenAPI document, so it runs against the
+servers of 3.1.0 only (`SERVER_ADAPTERS`, which leaves out `openleadr301`).
+3.0.1 differs from it in the shape of every targeted object, in where
+resources are, and in having no `GET /auth/server`: its scenarios would have
+to be written against the 3.0.1 document. The findings of v0.1.4 below come
+from running it by hand.
 
 A consumer that compares itself with a reference has to know where the
 reference and the specification part ways. That is what the findings are.
@@ -140,6 +161,67 @@ client and notices that one has gone only when it fails to send to it: until
 then a new one is answered 409. (WebSocket notifications are OpenLEADR's
 extension, not OpenADR 3.1.0.)
 
+### OpenLEADR v0.1.4 (OpenADR 3.0.1)
+
+Observed by running the `openleadr301` image with the `baseline-301`
+fixture, and checked against the 3.0.1 OpenAPI document
+(oadr3-org/specification `a35682b`, SHA-256 `3418d267…e7e7`). Where the
+document says nothing, the finding says what the VTN does and no more.
+
+**`/subscriptions` is not there** (404). 3.0.1 defines `/subscriptions` and
+`/subscriptions/{subscriptionID}`. v0.1.4 has no notifications of any kind:
+no subscriptions, no webhooks, no MQTT.
+
+**A VEN cannot delete its own report.** `DELETE /reports/{id}` by the VEN
+that wrote the report answers 403 "User does not have the required role";
+only Business Logic may. 3.0.1 gives the operation the scope
+`write_reports`, the VEN's. OpenLEADR's own source says so too: a TODO in
+`openleadr-vtn/src/api/report.rs` notes that this contradicts the
+specification. The VEN can update its report (200).
+
+**An event or a program with a report cannot be deleted.** While a report of
+it exists, `DELETE /events/{id}` and `DELETE /programs/{id}` answer 409 "A
+foreign key constraint is violated". 3.0.1 lists no 409 for either. Once
+Business Logic has deleted the report, both succeed. Together with the
+finding above, a VEN's report keeps its event alive until Business Logic
+removes it.
+
+**Program targets of type `VEN_NAME` are not searched.** The VTN keeps them
+apart from the program's other targets (in the table `ven_program`), as the
+list of VENs that may see the program. `GET /programs?targetType=VEN_NAME&targetValues=site-1`
+answers `[]`, as Business Logic and as `ven-1`, although Business Logic is
+shown `group-a-flex` with exactly that target. 3.0.1 says a list "may filter
+results by targetType and targetValues". Searches by event targets of type
+`VEN_NAME` (`group-a-limit`) and by ven targets of type `GROUP` (`site-1`)
+find what they should.
+
+**A VEN is shown a `VEN_NAME`-targeted program without its targets.**
+`ven-1` sees `group-a-flex` in `GET /programs` and `GET /programs/{id}`, with
+no `targets`. Business Logic sees the targets. Events keep theirs.
+
+**A VEN client without a ven sees nothing.** `ven-3`, which has no ven, gets
+`[]` for `GET /programs`, even for `day-ahead`, which targets no one. A VEN
+client sees what its ven may see, and `ven-3` has none.
+
+**A bearer token the VTN did not issue is answered 403** (feature
+`serverInvalidTokenIs401`), with the detail "Invalid authentication token
+provided"; a request without a token gets 401. The 3.0.1 OpenAPI document
+has no 401 response anywhere and lists 403, so this is no departure from the
+document, only from what 3.1.0 says.
+
+**A report must name its program.** `POST /reports` without `programID` is
+400. That is what 3.0.1 requires: `programID` is a required property of a
+report, which 3.1.0 dropped. A client written for 3.1.0 has to add it.
+
+**Things that are as 3.0.1 has them:** a token from `POST /auth/token` with
+the client credentials of the fixture (`expires_in` 2592000, thirty days);
+no `GET /auth/server` (404), which 3.0.1 does not have; targets as valuesMap
+objects, with a 3.1.0 string target refused (400); resources under their
+ven, `/vens/{venID}/resources`, and inlined in the ven object as `resources`;
+`objectType` on every object returned, ven objects included, and not
+required in the requests tried (a program, a report). The VTN listens on port 3000 whatever it is told; the image
+forwards the port of the contract to it.
+
 ### ElaadNL openadr3-client 2.4.0
 
 **A program with a report payload descriptor is an invalid response**
@@ -162,10 +244,12 @@ OpenADR 3.1 requires of deployments. The adapter passes
 an `http://` URL, because reference servers on a test network have no
 certificate.
 
-**The operations of a subscription have the names of OpenADR 3.0.1**
+**The operations of a subscription are named with HTTP methods**
 (feature `clientSubscriptionOperations310`). The library's 3.1.0 model takes
 `GET`, `POST`, `PUT` and `DELETE` for `objectOperations[].operations`; 3.1.0
-names them `READ`, `CREATE`, `UPDATE` and `DELETE`. A subscription to `CREATE`
+names them `READ`, `CREATE`, `UPDATE` and `DELETE`, and so does 3.0.1. Neither
+revision uses HTTP methods for a subscription: 3.0.1 uses them only for the
+`operation` of a notification. A subscription to `CREATE`
 the library refuses to send, one to `POST` a 3.1.0 VTN refuses to take, and a
 subscription someone else made with the 3.1.0 names is an invalid response.
 `DELETE` is the one name the two share. This is a fault of the library against
