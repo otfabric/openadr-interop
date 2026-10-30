@@ -56,6 +56,13 @@ last release of OpenADR 3.0. Fixtures of either revision, the
 | `make interop` | elaadnl → openleadr: 73 pass, 5 skipped on capabilities; elaadnl → openleadr301 not paired (3.1.0 against 3.0.1) |
 | `make conformance` | openleadr: 20 of 24, 4 known findings; openleadr301 not run (the suite is of 3.1.0) |
 
+## v0.6.0 (released)
+
+Self-test results as the organisation's interop-result-v1: `reports/results.json`,
+stable scenario IDs in `tests/cases.tsv`, and a fifth column in
+`tests/known-bugs.tsv`, the evidence URL of a waiver. The adapters, the
+fixtures and the container contract do not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:

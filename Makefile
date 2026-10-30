@@ -43,7 +43,7 @@ export REGISTRY VERSION
 
 # image-% and smoke-% are pattern rules, which make ignores for .PHONY
 # targets: they depend on FORCE instead.
-.PHONY: help all ci validate documents lint images smoke interop conformance conformance-test buildx publish \
+.PHONY: help all ci validate unittests documents lint images smoke interop conformance conformance-test buildx publish \
         buildx-setup publish-arch publish-manifest digests capabilities clean FORCE
 FORCE:
 
@@ -58,7 +58,7 @@ ci: validate lint conformance-test images documents conformance ## Full local CI
 
 # ── Validation ───────────────────────────────────────────────────────────────
 
-validate: ## Validate every fixture against the schema and the cross-field rules; check versions.yaml and RELEASE.md
+validate: unittests ## Validate every fixture against the schema and the cross-field rules; check versions.yaml and RELEASE.md
 	@scripts/check-versions.sh
 	@scripts/release-notes.sh > /dev/null && echo "ok   RELEASE.md has the notes of interop_version"
 	@for f in adapters/*/openadr_interop/fixture.py; do cmp -s adapters/openleadr/openadr_interop/fixture.py $$f \
@@ -71,6 +71,9 @@ validate: ## Validate every fixture against the schema and the cross-field rules
 		$(RETRY) docker run --rm -v "$(CURDIR):/work:ro" -w /work $(TOOLS_REGISTRY)/library/python:3.12-slim \
 			sh -c 'pip install -q --root-user-action=ignore jsonschema && python scripts/validate-fixtures.py --require-schema'; \
 	fi
+
+unittests: ## Unit tests of the result scripts
+	@python3 -m unittest discover -q -s scripts -p 'test_*.py'
 
 documents: ## Run the self-tests keeping every document, and validate them against schemas/
 	@rm -rf reports && mkdir -p reports

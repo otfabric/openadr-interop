@@ -15,6 +15,8 @@
 #      spaces: a JSON body is written without any. @program:NAME@,
 #      @event:NAME@ and @ven:NAME@ stand for the ID the VTN gave that object
 #      of the fixture.
+#   7  id      stable scenario ID of results.json (case.<id>): never change it
+#              when the wording of the operation changes
 #
 # Every case runs for every client/server pairing whose client offers the
 # operation to the role of the client named with --as.
@@ -23,70 +25,70 @@
 # object (site-1, site-2), ven-3 has none; ven-1 is granted the target
 # group-a. Programs day-ahead (open) and group-a-flex (targeted), one event
 # in each.
-ro	baseline	0	ok=true error=- status=200 n=2	-	list-programs --as bl
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as ven-2
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverTargetsMustBeNamed	list-programs --as ven-1
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as ven-1 --targets group-a
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-programs --as ven-2 --targets group-a
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --targets group-a
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --skip 0 --limit 1
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --skip 1 --limit 50
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-programs --as bl --skip 2 --limit 50
-ro	baseline	1	ok=false error=http-error status=400 n=0	-	list-programs --as bl --skip 0 --limit 51
-ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as bl --id @program:group-a-flex@
-ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as ven-2 --id @program:day-ahead@
-ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as ven-1 --id @program:group-a-flex@
-ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-program --as bl --id no-such-program
-ro	baseline	0	ok=true error=- status=200 n=2	-	list-events --as bl
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as bl --program-id @program:day-ahead@
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-2
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-1 --program-id @program:day-ahead@
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-1 --targets group-a
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-events --as ven-2 --targets group-a
-ro	baseline	0	ok=true error=- status=200 n=1	-	get-event --as ven-1 --id @event:day-ahead-prices@
-ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-event --as ven-1 --id no-such-event
-ro	baseline	0	ok=true error=- status=200 n=2	-	list-vens --as bl
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-vens --as bl --ven-name site-2
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-vens --as ven-1
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-vens --as ven-1 --ven-name site-2
-ro	baseline	0	ok=true error=- status=200 n=1	-	get-ven --as ven-1 --id @ven:site-1@
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-resources --as bl
-ro	baseline	0	ok=true error=- status=200 n=1	-	list-resources --as ven-1 --ven-id @ven:site-1@
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-resources --as ven-2
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-reports --as bl
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-reports --as ven-1 --event-id @event:day-ahead-prices@
-ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-report --as ven-1 --id no-such-report
-ro	baseline	1	ok=false error=invalid-request status=- n=0	-	create-program --as bl --body {"targets":["group-a"]}
-rw	baseline	0	ok=true error=- status=201 n=1	-	create-program --as bl --body {"programName":"extra","targets":["group-a"]}
-rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-program --as bl --body {"programName":"day-ahead"}
-rw	baseline	0	ok=true error=- status=200 n=1	-	update-program --as bl --id @program:group-a-flex@ --body {"programName":"group-a-flex-renamed"}
-rw	baseline	0	ok=true error=- status=201 n=1	-	create-event --as bl --body {"programID":"@program:day-ahead@","eventName":"extra","intervals":[{"id":0,"payloads":[{"type":"PRICE","values":[0.5]}]}]}
-rw	baseline	0	ok=true error=- status=200 n=1	-	delete-event --as bl --id @event:group-a-limit@
-rw	baseline	0	ok=true error=- status=201 n=1	-	create-report --as ven-1 --body {"eventID":"@event:day-ahead-prices@","clientName":"site-1","resources":[{"resourceName":"battery","intervals":[{"id":0,"payloads":[{"type":"USAGE","values":[3.5]}]}]}]}
-rw	baseline	0	ok=true error=- status=201 n=1	-	create-ven --as ven-3 --body {"venName":"site-3"}
-rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-ven --as ven-3 --body {"venName":"site-1"}
-rw	baseline	0	ok=true error=- status=201 n=1	-	create-ven --as bl --body {"venName":"site-3","clientID":"interop-ven-3","targets":["group-b"]}
-rw	baseline	0	ok=true error=- status=201 n=1	-	create-resource --as ven-1 --body {"resourceName":"charger","venID":"@ven:site-1@"}
-rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-resource --as ven-1 --body {"resourceName":"battery","venID":"@ven:site-1@"}
-ro	descriptors	0	ok=true error=- status=200 n=1	client:clientReportDescriptorsInPrograms	list-programs --as ven-1
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-vens --as ven-3
-rw	baseline	0	ok=true error=- status=200 n=1	-	delete-ven --as bl --id @ven:site-2@
+ro	baseline	0	ok=true error=- status=200 n=2	-	list-programs --as bl	list-programs.bl
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as ven-2	list-programs.ven-2
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverTargetsMustBeNamed	list-programs --as ven-1	list-programs.ven-1
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as ven-1 --targets group-a	list-programs.ven-1.targets-group-a
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-programs --as ven-2 --targets group-a	list-programs.ven-2.targets-group-a
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --targets group-a	list-programs.bl.targets-group-a
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --skip 0 --limit 1	list-programs.bl.skip-0.limit-1
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-programs --as bl --skip 1 --limit 50	list-programs.bl.skip-1.limit-50
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-programs --as bl --skip 2 --limit 50	list-programs.bl.skip-2.limit-50
+ro	baseline	1	ok=false error=http-error status=400 n=0	-	list-programs --as bl --skip 0 --limit 51	list-programs.bl.skip-0.limit-51
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as bl --id @program:group-a-flex@	get-program.bl.id-program-group-a-flex
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as ven-2 --id @program:day-ahead@	get-program.ven-2.id-program-day-ahead
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as ven-1 --id @program:group-a-flex@	get-program.ven-1.id-program-group-a-flex
+ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-program --as bl --id no-such-program	get-program.bl.id-no-such-program
+ro	baseline	0	ok=true error=- status=200 n=2	-	list-events --as bl	list-events.bl
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as bl --program-id @program:day-ahead@	list-events.bl.program-id-program-day-ahead
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-2	list-events.ven-2
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-1 --program-id @program:day-ahead@	list-events.ven-1.program-id-program-day-ahead
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as ven-1 --targets group-a	list-events.ven-1.targets-group-a
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-events --as ven-2 --targets group-a	list-events.ven-2.targets-group-a
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-event --as ven-1 --id @event:day-ahead-prices@	get-event.ven-1.id-event-day-ahead-prices
+ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-event --as ven-1 --id no-such-event	get-event.ven-1.id-no-such-event
+ro	baseline	0	ok=true error=- status=200 n=2	-	list-vens --as bl	list-vens.bl
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-vens --as bl --ven-name site-2	list-vens.bl.ven-name-site-2
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-vens --as ven-1	list-vens.ven-1
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-vens --as ven-1 --ven-name site-2	list-vens.ven-1.ven-name-site-2
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-ven --as ven-1 --id @ven:site-1@	get-ven.ven-1.id-ven-site-1
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-resources --as bl	list-resources.bl
+ro	baseline	0	ok=true error=- status=200 n=1	-	list-resources --as ven-1 --ven-id @ven:site-1@	list-resources.ven-1.ven-id-ven-site-1
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-resources --as ven-2	list-resources.ven-2
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-reports --as bl	list-reports.bl
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-reports --as ven-1 --event-id @event:day-ahead-prices@	list-reports.ven-1.event-id-event-day-ahead-prices
+ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-report --as ven-1 --id no-such-report	get-report.ven-1.id-no-such-report
+ro	baseline	1	ok=false error=invalid-request status=- n=0	-	create-program --as bl --body {"targets":["group-a"]}	create-program.bl.no-name
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-program --as bl --body {"programName":"extra","targets":["group-a"]}	create-program.bl.extra
+rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-program --as bl --body {"programName":"day-ahead"}	create-program.bl.day-ahead
+rw	baseline	0	ok=true error=- status=200 n=1	-	update-program --as bl --id @program:group-a-flex@ --body {"programName":"group-a-flex-renamed"}	update-program.bl.id-program-group-a-flex.group-a-flex-renamed
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-event --as bl --body {"programID":"@program:day-ahead@","eventName":"extra","intervals":[{"id":0,"payloads":[{"type":"PRICE","values":[0.5]}]}]}	create-event.bl.extra
+rw	baseline	0	ok=true error=- status=200 n=1	-	delete-event --as bl --id @event:group-a-limit@	delete-event.bl.id-event-group-a-limit
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-report --as ven-1 --body {"eventID":"@event:day-ahead-prices@","clientName":"site-1","resources":[{"resourceName":"battery","intervals":[{"id":0,"payloads":[{"type":"USAGE","values":[3.5]}]}]}]}	create-report.ven-1.site-1
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-ven --as ven-3 --body {"venName":"site-3"}	create-ven.ven-3.site-3
+rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-ven --as ven-3 --body {"venName":"site-1"}	create-ven.ven-3.site-1
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-ven --as bl --body {"venName":"site-3","clientID":"interop-ven-3","targets":["group-b"]}	create-ven.bl.site-3-with-client
+rw	baseline	0	ok=true error=- status=201 n=1	-	create-resource --as ven-1 --body {"resourceName":"charger","venID":"@ven:site-1@"}	create-resource.ven-1.charger
+rw	baseline	1	ok=false error=http-error status=409 n=0	-	create-resource --as ven-1 --body {"resourceName":"battery","venID":"@ven:site-1@"}	create-resource.ven-1.battery
+ro	descriptors	0	ok=true error=- status=200 n=1	client:clientReportDescriptorsInPrograms	list-programs --as ven-1	list-programs.ven-1.descriptors
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-vens --as ven-3	list-vens.ven-3
+rw	baseline	0	ok=true error=- status=200 n=1	-	delete-ven --as bl --id @ven:site-2@	delete-ven.bl.id-ven-site-2
 # Contract 1.3: notifiers, MQTT topics, subscriptions, resource groups and a
 # client without a token.
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,server:serverNotifiersWebhook	get-notifiers --as ven-1
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,server:serverNotifiersWebhook	get-notifiers --as bl
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope programs
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope events
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope program-events --id @program:day-ahead@
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as ven-1 --scope ven-events --id @ven:site-1@
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as ven-1 --scope ven-programs --id @ven:site-1@
-ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,client:clientTopicsOfOneObject	get-topics --as bl --scope program --id @program:day-ahead@
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-subscriptions --as ven-1
-ro	baseline	0	ok=true error=- status=200 n=0	-	list-subscriptions --as bl
-ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-subscription --as ven-1 --id no-such-subscription
-ro	baseline	1	ok=false error=invalid-request status=- n=0	-	create-subscription --as ven-1 --body {"clientName":"site-1"}
-ro	baseline	0	ok=true error=- status=200 n=0	server:serverResourceGroups	list-resource-groups --as bl
-ro	baseline	0	ok=true error=- status=200 n=0	server:serverResourceGroups	list-resource-groups --as ven-1
-ro	baseline	1	ok=false error=http-error status=404 n=0	server:serverResourceGroups	get-resource-group --as bl --id no-such-group
-rw	baseline	0	ok=true error=- status=201 n=1	server:serverResourceGroups	create-resource-group --as bl --body {"resourceGroupName":"street","targets":["group-a"]}
-ro	baseline	1	ok=false error=http-error status=401 n=0	-	list-programs --anonymous ven
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,server:serverNotifiersWebhook	get-notifiers --as ven-1	get-notifiers.ven-1
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,server:serverNotifiersWebhook	get-notifiers --as bl	get-notifiers.bl
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope programs	get-topics.bl.scope-programs
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope events	get-topics.bl.scope-events
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as bl --scope program-events --id @program:day-ahead@	get-topics.bl.scope-program-events.id-program-day-ahead
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as ven-1 --scope ven-events --id @ven:site-1@	get-topics.ven-1.scope-ven-events.id-ven-site-1
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt	get-topics --as ven-1 --scope ven-programs --id @ven:site-1@	get-topics.ven-1.scope-ven-programs.id-ven-site-1
+ro	baseline	0	ok=true error=- status=200 n=1	server:serverMqtt,client:clientTopicsOfOneObject	get-topics --as bl --scope program --id @program:day-ahead@	get-topics.bl.scope-program.id-program-day-ahead
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-subscriptions --as ven-1	list-subscriptions.ven-1
+ro	baseline	0	ok=true error=- status=200 n=0	-	list-subscriptions --as bl	list-subscriptions.bl
+ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-subscription --as ven-1 --id no-such-subscription	get-subscription.ven-1.id-no-such-subscription
+ro	baseline	1	ok=false error=invalid-request status=- n=0	-	create-subscription --as ven-1 --body {"clientName":"site-1"}	create-subscription.ven-1.site-1
+ro	baseline	0	ok=true error=- status=200 n=0	server:serverResourceGroups	list-resource-groups --as bl	list-resource-groups.bl
+ro	baseline	0	ok=true error=- status=200 n=0	server:serverResourceGroups	list-resource-groups --as ven-1	list-resource-groups.ven-1
+ro	baseline	1	ok=false error=http-error status=404 n=0	server:serverResourceGroups	get-resource-group --as bl --id no-such-group	get-resource-group.bl.id-no-such-group
+rw	baseline	0	ok=true error=- status=201 n=1	server:serverResourceGroups	create-resource-group --as bl --body {"resourceGroupName":"street","targets":["group-a"]}	create-resource-group.bl.street
+ro	baseline	1	ok=false error=http-error status=401 n=0	-	list-programs --anonymous ven	list-programs.anonymous-ven
