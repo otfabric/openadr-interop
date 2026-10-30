@@ -1,0 +1,144 @@
+name: Upstream
+run-name: "Upstream check (${{ github.event_name }})"
+
+# Daily check of every pin against the latest upstream: the release of every
+# stack (scripts/latest-upstream.py) and the digest of every base image. A
+# stack whose pin is behind is built at the latest release and self-tested
+# (once per pin -> latest pair; later runs reuse that result). The table goes
+# to the Job Summary and to the issue "Upstream releases: pins behind the
+# latest", which is opened or updated (with a comment when a new version shows
+# up) and closed once every pin is current. Pins (Dockerfiles, lock files,
+# versions.yaml) are never changed here: a bump is a reviewed change.
+#
+# A candidate is tested like a release: smoke test plus the cross-stack
+# self-test against the pinned other stacks, and for a server the conformance
+# suite. Bugs of a specific upstream version listed in tests/known-bugs.tsv,
+# and conformance findings listed in conformance/known/<adapter>.tsv, are
+# reported as known rather than as failures, so one upstream bug does not hide
+# whether everything else works. A new upstream version has no known findings
+# yet: the findings of the pin that it still has fail the candidate, which is
+# the prompt to carry them over or to drop them.
+# Shared steps: https://github.com/otfabric/.github/tree/main/actions
+on:
+  schedule:
+    - cron: "47 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream
+  cancel-in-progress: false
+
+env:
+  # Nothing is pulled from Docker Hub: anonymous pulls are rate limited per
+  # runner address and its token service times out under load. Base images
+  # (pinned by digest) and build tooling come from Google's mirror of it, and
+  # every registry operation is retried on transient failures (scripts/retry.sh).
+  BASE_REGISTRY: mirror.gcr.io/library
+  TOOLS_REGISTRY: mirror.gcr.io
+
+jobs:
+  images:
+    name: Base images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: otfabric/.github/actions/upstream-images@main
+
+  candidate:
+    name: ${{ matrix.adapter }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        adapter: [openleadr, elaadnl, openleadr301]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve the pin against upstream
+        id: resolve
+        run: scripts/latest-upstream.py "${{ matrix.adapter }}" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Set up Go (the conformance suite)
+        if: steps.resolve.outputs.update == 'yes'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: conformance/go.mod
+          cache-dependency-path: conformance/go.sum
+
+      # The summary line is the cross-stack self-test, or for a server the
+      # conformance suite, which runs last.
+      - name: Build and self-test at the latest release
+        id: test
+        if: steps.resolve.outputs.update == 'yes'
+        uses: otfabric/.github/actions/upstream-candidate@main
+        with:
+          name: ${{ matrix.adapter }}
+          pinned: ${{ steps.resolve.outputs.pin }}
+          latest: ${{ steps.resolve.outputs.latest }}
+          result-pattern: '^\[interop\] [0-9]+ passed|^[0-9]+ scenarios: '
+          command: >-
+            make images &&
+            make "candidate-${{ matrix.adapter }}"
+            CANDIDATE_VERSION="${{ steps.resolve.outputs.latest }}"
+            CANDIDATE_SHA="${{ steps.resolve.outputs.latest_sha }}"
+
+      - name: Known bugs and findings of the latest release
+        id: known
+        if: always()
+        run: |
+          known=$(awk -F'\t' -v a="${{ matrix.adapter }}" -v v="${{ steps.resolve.outputs.latest }}" \
+            '$1 == a && $2 == v { printf "%s%s", sep, $4; sep = "; " }' tests/known-bugs.tsv)
+          if [ -f "conformance/known/${{ matrix.adapter }}.tsv" ]; then
+            findings=$(awk -F'\t' -v v="${{ steps.resolve.outputs.latest }}" \
+              '$1 == v { printf "%s%s: %s", sep, $2, $4; sep = "; " }' "conformance/known/${{ matrix.adapter }}.tsv")
+            known="${known}${known:+${findings:+; }}${findings}"
+          fi
+          echo "known=${known}" >> "$GITHUB_OUTPUT"
+
+      - name: Table row
+        if: always()
+        uses: otfabric/.github/actions/upstream-row@main
+        with:
+          component: ${{ matrix.adapter }}
+          source: ${{ steps.resolve.outputs.source }}
+          pinned: ${{ steps.resolve.outputs.pin }}
+          latest: ${{ steps.resolve.outputs.latest }}
+          update: ${{ steps.resolve.outputs.update }}
+          detail: ${{ steps.resolve.outcome == 'failure' && 'upstream lookup failed (see the job log)' || '' }}
+          test-outcome: ${{ steps.test.outputs.outcome }}
+          test-result: ${{ steps.test.outputs.result }}
+          test-cached: ${{ steps.test.outputs.cached }}
+          known: ${{ steps.known.outputs.known }}
+
+  report:
+    name: Report
+    runs-on: ubuntu-latest
+    needs: [images, candidate]
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: otfabric/.github/actions/upstream-report@main
+        with:
+          needs: ${{ toJSON(needs) }}
+          notes: |
+            ### To update
+
+            - **Library:** move `ARG UPSTREAM_VERSION` (openleadr and openleadr301 also
+              `UPSTREAM_SHA`) in `adapters/<adapter>/Dockerfile`, the adapter's lock file
+              (`requirements.txt` of elaadnl; OpenLEADR builds against its own `Cargo.lock`) and
+              `versions.yaml`; openleadr301 follows v0.1.x only. Reproduce a candidate with
+              `make candidate-<adapter> CANDIDATE_VERSION=<version>` (openleadr and openleadr301
+              also `CANDIDATE_SHA=<commit>`); a `failure` needs the self-test log of the run first.
+              A server candidate fails on the conformance findings it shares with the pin until
+              they are listed for the new version in `conformance/known/<adapter>.tsv`. A *known
+              bug ... did not reproduce* is good news: drop it from `tests/known-bugs.tsv`. See
+              CONTRIBUTING.md.
+            - **Base image:** replace the digest in every file that pins it.
+            - Record the change in `docs/COMPATIBILITY.md` and `RELEASE.md`.

@@ -127,7 +127,7 @@ conformance-%: FORCE ## Run the conformance scenarios against one reference serv
 conformance-test: ## Build, vet and test the conformance suite itself (no VTN needed)
 	@cd conformance && GOWORK=off go vet ./... && GOWORK=off go test -count=1 -race ./...
 
-# ── Upstream candidates ───────────────────────────────────────────────────────
+# ── Upstream candidates (the Upstream workflow) ───────────────────────────────
 # Builds one adapter on another upstream version than the release pin and runs
 # the self-tests on it, against the other adapters at their pins, and for a
 # server the conformance suite. Bugs of that

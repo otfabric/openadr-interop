@@ -44,7 +44,7 @@ See [docs/FIXTURES.md](docs/FIXTURES.md#adding-a-fixture).
 
 1. `adapters/<name>/` with a Dockerfile that follows the others: base images by digest as `ARG <NAME>_DIGEST`, the upstream pin as `ARG UPSTREAM_VERSION`, a non-root user 10001, the fixtures at `/fixtures`, licence texts at `/licenses`.
 2. The contract: `server` and/or `client`, `print-capabilities`, `print-fixture`, `version`, the exit codes.
-3. `versions.yaml`, `ADAPTERS` (and `SERVER_ADAPTERS`, for a server of 3.1.0) in the Makefile, the matrix of `.github/workflows/candidate.yml` and a resolver in `scripts/latest-upstream.py`, the tables in README.md, docs/CAPABILITIES.md, docs/COMPATIBILITY.md and THIRD_PARTY_NOTICES.md.
+3. `versions.yaml`, `ADAPTERS` (and `SERVER_ADAPTERS`, for a server of 3.1.0) in the Makefile, the matrix of `.github/workflows/upstream.yml` and a resolver in `scripts/latest-upstream.py`, the tables in README.md, docs/CAPABILITIES.md, docs/COMPATIBILITY.md and THIRD_PARTY_NOTICES.md.
 4. `make ci`.
 
 ## Adding a conformance scenario

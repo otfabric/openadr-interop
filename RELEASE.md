@@ -24,7 +24,7 @@ Tags are immutable. A fix is a new version.
 
 ## Upstream releases
 
-The `Upstream candidates` workflow runs every Monday and on demand. For each adapter it looks up the latest stable upstream release (`scripts/latest-upstream.py`: the git tags of OpenLEADR, of v0.1.x only for `openleadr301`, PyPI for the ElaadNL client). Where the pin is behind, it builds a candidate image on that release and runs the smoke test, the cross-stack self-test against the other stacks at their pins and, for a server, the conformance suite. The result is a pin-versus-latest table in the job summary and a tracking issue, which is closed once every pin is the latest release again. The pins themselves are never changed by a workflow: [CONTRIBUTING.md](CONTRIBUTING.md#moving-an-upstream-pin) says how to move one.
+The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on demand. For each adapter it looks up the latest stable upstream release (`scripts/latest-upstream.py`: the git tags of OpenLEADR, of v0.1.x only for `openleadr301`, PyPI for the ElaadNL client). Where the pin is behind, it builds a candidate image on that release and runs the smoke test, the cross-stack self-test against the other stacks at their pins and, for a server, the conformance suite (once per pin and release; later runs reuse that result). It also checks the digest of every pinned base image. The result is a pin-versus-latest table in the job summary and the tracking issue "Upstream releases: pins behind the latest", which is closed once every pin is the latest release again. The pins themselves are never changed by a workflow: [CONTRIBUTING.md](CONTRIBUTING.md#moving-an-upstream-pin) says how to move one.
 
 ---
 
