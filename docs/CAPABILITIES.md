@@ -52,14 +52,14 @@ says which is which.
 
 | | `openleadr` | `elaadnl` | `openleadr301` |
 |---|:---:|:---:|:---:|
-| Upstream | OpenLEADR openleadr-rs v0.2.7 | ElaadNL openadr3-client 2.4.0 | OpenLEADR openleadr-rs v0.1.4 |
+| Upstream | OpenLEADR openleadr-rs v0.2.8 | ElaadNL openadr3-client 2.4.0 | OpenLEADR openleadr-rs v0.1.4 |
 | OpenADR | 3.1.0 | 3.1.0 | 3.0.1 |
 | Language | Rust | Python | Rust |
 | Server role | yes | no | yes |
 | Client role | no | yes | no |
 | `serverTokenEndpoint` | yes | | yes |
 | `serverVenObjectType` | no | | yes |
-| `serverInvalidTokenIs401` | no | | no |
+| `serverInvalidTokenIs401` | yes | | no |
 | `serverTargetsMustBeNamed` | no | | no |
 | `serverMqtt` | yes | | no |
 | `serverMdns` | yes | | no |

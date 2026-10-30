@@ -7,12 +7,12 @@ import (
 )
 
 func TestLoadKnownReadsTheListedFindings(t *testing.T) {
-	known, err := loadKnown("../../known/openleadr.tsv", "v0.2.7")
+	known, err := loadKnown("../../known/openleadr.tsv", "v0.2.8")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(known) != 4 {
-		t.Fatalf("got %d findings, want 4", len(known))
+	if len(known) != 3 {
+		t.Fatalf("got %d findings, want 3", len(known))
 	}
 }
 

@@ -3,7 +3,7 @@
 # The Dockerfiles are the source of truth for a build:
 # scripts/check-versions.sh fails when this file disagrees with them.
 
-interop_version: "0.6.0"
+interop_version: "0.6.1"
 contract_version: "1.4"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
 fixture_schema: "1.1"          # fixtures/schema/openadr-fixture.schema.json
 
@@ -27,8 +27,8 @@ implementations:
     status: published            # ghcr.io/otfabric/openadr-interop-openleadr, digests in each release's manifest.json
     upstream: "OpenLEADR openleadr-rs"
     repository: "https://github.com/OpenLEADR/openleadr-rs"
-    version: "v0.2.7"            # latest release (2026-10-06)
-    revision: "f586cc3cf26fe2807041cadf989e219c6e5b2073"   # the commit of tag v0.2.7; the build fetches it
+    version: "v0.2.8"            # latest release (2026-10-30)
+    revision: "d1523514e522b45b66d1d293ed208afb52e606ad"   # the commit of tag v0.2.8; the build fetches it
     license: "Apache-2.0 OR MIT"
     language: "Rust"
     independent_engine: true
