@@ -1,5 +1,6 @@
 # Run output
 reports/
+scripts/__pycache__/
 conformance/bin/
 
 # Editors and OS

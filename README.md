@@ -93,6 +93,10 @@ use that URL.) The client prints one JSON document:
  "problem":null,"elapsedMs":131}
 ```
 
+`make documents` also writes `reports/results.json`, the organisation's
+[interop-result-v1](schemas/interop-result-v1.schema.json), for the cross-stack self-test. Only `pass`
+counts as passing: a run with no pass, or with a known bug that no longer reproduces, fails.
+
 ## Using the images from a library's tests
 
 **To test a client library**, start a reference server and point the

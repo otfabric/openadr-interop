@@ -16,7 +16,8 @@
 # any library that consumes the images.
 #
 # Environment: REGISTRY, VERSION (image tag, default dev), VERBOSE=1,
-#              REPORT_DIR (keeps every result document when set).
+#              REPORT_DIR (keeps every result document when set, and writes
+#              results.json, interop-result-v1: only a pass counts as passing).
 
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -30,7 +31,10 @@ CASES="${ROOT}/tests/cases.tsv"
 KNOWN_BUGS="${ROOT}/tests/known-bugs.tsv"
 require_tools
 WORK=$(mktemp -d)
-trap 'rm -rf "${WORK}"; cleanup' EXIT
+STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+RESULT_LOG="${WORK}/results.log"
+REPRODUCE="REPORT_DIR=reports VERSION=${VERSION} scripts/interop.sh ${ADAPTERS[*]}"
+trap 'abort_results "${WORK}" "${STARTED}" "${REPRODUCE}"; rm -rf "${WORK}"; cleanup' EXIT
 network_up
 
 # ---- known upstream bugs that apply to the versions under test ----
@@ -41,7 +45,8 @@ for adapter in "${ADAPTERS[@]}"; do
     docker run --rm "$(image_of "${adapter}")" print-capabilities > "${WORK}/caps-${adapter}.json" 2>/dev/null
     version=$(jq -r '.upstream.version' "${WORK}/caps-${adapter}.json")
     log "${adapter}: upstream ${version}"
-    while IFS=$'\t' read -r bug_adapter bug_version bug_regex bug_text; do
+    printf '%s\t%s\t%s\n' "${adapter}" "${version}" "$(image_of "${adapter}")" >> "${WORK}/implementations.tsv"
+    while IFS=$'\t' read -r bug_adapter bug_version bug_regex bug_text _; do
         [[ -z "${bug_adapter}" || "${bug_adapter}" == \#* ]] && continue
         if [[ "${bug_adapter}" == "${adapter}" && "${bug_version}" == "${version}" ]]; then
             printf '%s\t%s\t%s\n' "${bug_adapter}" "${bug_regex}" "${bug_text}" >> "${WORK}/active"
@@ -77,7 +82,10 @@ supported() {
 }
 
 SKIPPED=0
-skip() { SKIPPED=$((SKIPPED + 1)); [[ -n "${VERBOSE:-}" ]] && log "skip: $*"; return 0; }
+skip() { SKIPPED=$((SKIPPED + 1)); record unsupported "$*"; [[ -n "${VERBOSE:-}" ]] && log "skip: $*"; return 0; }
+
+# at <stable id>: the scenario of the pairing ${cl}, ${server}.
+at() { scenario "$1" "client=${cl}" "server=${server}"; }
 
 # known_bug <client> <server> <operation>: prints the description of a known
 # bug that may affect this pairing and operation, if there is one.
@@ -96,6 +104,7 @@ known_bug() {
 hit_known_bug() {
     KNOWN=$((KNOWN + 1))
     echo "$3" >> "${WORK}/reproduced"
+    record known-difference "$3" "$3"
     [[ -n "${VERBOSE:-}" ]] && log "known bug: $1: $2"
     return 0
 }
@@ -191,7 +200,7 @@ server_for() {
 
 # ---- the cases ----
 n=0
-while IFS=$'\t' read -r state fixture want_exit want_summary needs operation; do
+while IFS=$'\t' read -r state fixture want_exit want_summary needs operation id; do
     [[ -z "${state}" || "${state}" == \#* ]] && continue
     n=$((n + 1))
     read -ra words <<<"${operation}"
@@ -208,6 +217,7 @@ while IFS=$'\t' read -r state fixture want_exit want_summary needs operation; do
         for cl in "${CLIENTS[@]}"; do
             pair="${cl}->${server}"
             paired "${cl}" "${server}" || continue
+            at "case.${id}"
             if ! offers "${cl}" "${role}" "${op}" || ! supported "${cl}" "${server}" "${needs}"; then
                 skip "${pair}: ${operation}"; continue
             fi
@@ -240,27 +250,33 @@ for server in "${SERVERS[@]}"; do
     for cl in "${CLIENTS[@]}"; do
         pair="${cl}->${server}"
         paired "${cl}" "${server}" || continue
+        at workflow.all
         if ! offers "${cl}" bl create-program || ! offers "${cl}" bl create-event || ! offers "${cl}" ven create-report; then
             skip "${pair}: workflow"; continue
         fi
         n="workflow"
+        at workflow.server
         name=$(server_for "${server}" baseline rw) || { fail "${pair}: no ${server} server for the workflow"; continue; }
         c() { client "${cl}" "${name}" baseline "$@"; }
 
+        at workflow.create-program
         doc=$(c create-program --as bl --body '{"programName":"workflow","payloadDescriptors":[{"objectType":"EVENT_PAYLOAD_DESCRIPTOR","payloadType":"PRICE","units":"KWH","currency":"EUR"}]}')
         keep "workflow-${cl}-${server}-1-create-program" "${doc}"
         check "${pair}: Business Logic creates a program" "${doc}" '.ok and .status == 201 and .response.programName == "workflow"
             and (.response.id | type == "string") and .response.payloadDescriptors[0].currency == "EUR"'
         program=$(jq -r '.response.id // empty' <<<"${doc}")
 
+        at workflow.create-event
         doc=$(c create-event --as bl --body "{\"programID\":\"${program}\",\"eventName\":\"workflow-prices\",\"priority\":3,\"intervalPeriod\":{\"start\":\"2031-06-01T10:00:00Z\",\"duration\":\"PT15M\"},\"reportDescriptors\":[{\"payloadType\":\"USAGE\"}],\"intervals\":[{\"id\":0,\"payloads\":[{\"type\":\"PRICE\",\"values\":[0.31]}]},{\"id\":1,\"payloads\":[{\"type\":\"PRICE\",\"values\":[0.24]}]}]}")
         keep "workflow-${cl}-${server}-2-create-event" "${doc}"
         check "${pair}: Business Logic creates an event" "${doc}" '.ok and .status == 201 and .response.eventName == "workflow-prices" and (.response.id | type == "string")'
         event=$(jq -r '.response.id // empty' <<<"${doc}")
 
+        at workflow.ven-discovers-program
         doc=$(c list-programs --as ven-2)
         check "${pair}: the VEN discovers the program" "${doc}" '.ok and ([.response[].programName] | index("workflow") != null)'
 
+        at workflow.ven-reads-event
         doc=$(c list-events --as ven-2 --program-id "${program}")
         keep "workflow-${cl}-${server}-4-list-events" "${doc}"
         check "${pair}: the VEN reads the event as it was published" "${doc}" '.ok and (.response | length) == 1
@@ -270,31 +286,40 @@ for server in "${SERVERS[@]}"; do
             and ([.response[0].intervals[].id] == [0, 1])
             and .response[0].reportDescriptors[0].payloadType == "USAGE"'
 
+        at workflow.ven-reports
         doc=$(c create-report --as ven-2 --body "{\"eventID\":\"${event}\",\"clientName\":\"site-2\",\"reportName\":\"usage\",\"resources\":[{\"resourceName\":\"meter\",\"intervals\":[{\"id\":0,\"payloads\":[{\"type\":\"USAGE\",\"values\":[1.8]}]}]}]}")
         keep "workflow-${cl}-${server}-5-create-report" "${doc}"
         check "${pair}: the VEN reports, under its own client ID" "${doc}" '.ok and .status == 201 and .response.clientID == "interop-ven-2" and .response.eventID != null'
         report=$(jq -r '.response.id // empty' <<<"${doc}")
 
+        at workflow.bl-reads-report
         doc=$(c list-reports --as bl --program-id "${program}")
         keep "workflow-${cl}-${server}-6-list-reports" "${doc}"
         check "${pair}: Business Logic reads the report" "${doc}" '.ok and (.response | length) == 1 and .response[0].reportName == "usage"
             and .response[0].resources[0].resourceName == "meter"
             and .response[0].resources[0].intervals[0].payloads[0].values == [1.8]'
 
+        at workflow.report-private-to-ven
         doc=$(c list-reports --as ven-1 --event-id "${event}")
         check "${pair}: another VEN does not see the report" "${doc}" '.ok and (.response | length) == 0'
 
+        at workflow.ven-corrects-report
         doc=$(c update-report --as ven-2 --id "${report}" --body "{\"eventID\":\"${event}\",\"clientName\":\"site-2\",\"reportName\":\"usage-corrected\",\"resources\":[{\"resourceName\":\"meter\",\"intervals\":[{\"id\":0,\"payloads\":[{\"type\":\"USAGE\",\"values\":[1.9]}]}]}]}")
         check "${pair}: the VEN corrects its report" "${doc}" '.ok and .status == 200 and .response.reportName == "usage-corrected"'
+        at workflow.bl-reads-correction
         doc=$(c get-report --as bl --id "${report}")
         check "${pair}: Business Logic reads the correction" "${doc}" '.ok and .response.resources[0].intervals[0].payloads[0].values == [1.9]'
 
+        at workflow.ven-deletes-report
         doc=$(c delete-report --as ven-2 --id "${report}")
         check "${pair}: the VEN deletes its report" "${doc}" '.ok and .status == 200'
+        at workflow.bl-deletes-event
         doc=$(c delete-event --as bl --id "${event}")
         check "${pair}: Business Logic deletes the event" "${doc}" '.ok and .status == 200'
+        at workflow.bl-deletes-program
         doc=$(c delete-program --as bl --id "${program}")
         check "${pair}: Business Logic deletes the program" "${doc}" '.ok and .status == 200'
+        at workflow.program-gone
         doc=$(c get-program --as bl --id "${program}")
         check "${pair}: the program is gone" "${doc}" '.ok == false and .status == 404'
         stop_server "${name}"
@@ -302,6 +327,7 @@ for server in "${SERVERS[@]}"; do
 done
 
 # ---- a known bug that no longer shows is a stale entry ----
+SCENARIO_ID=""
 while IFS=$'\t' read -r bug_adapter bug_regex bug_text; do
     [[ -z "${bug_adapter}" ]] && continue
     if ! grep -qxF "${bug_text}" "${WORK}/reproduced"; then
@@ -309,4 +335,5 @@ while IFS=$'\t' read -r bug_adapter bug_regex bug_text; do
     fi
 done < "${WORK}/active"
 
+write_results "${WORK}" "${STARTED}" "${REPRODUCE}"
 finish
