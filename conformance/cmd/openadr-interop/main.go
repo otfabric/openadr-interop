@@ -103,8 +103,8 @@ func loadKnown(path, version string) (map[string]knownFinding, error) {
 			continue
 		}
 		fields := strings.Split(line, "\t")
-		if len(fields) != 4 || fields[2] == "" {
-			return nil, fmt.Errorf("-known: %s line %d: want version, scenario ID, text of the failure and description, separated by tabs", path, i+1)
+		if len(fields) != 5 || fields[2] == "" || !strings.HasPrefix(fields[4], "https://") {
+			return nil, fmt.Errorf("-known: %s line %d: want version, scenario ID, text of the failure, description and evidence URL, separated by tabs", path, i+1)
 		}
 		if fields[0] == version {
 			known[fields[1]] = knownFinding{match: fields[2], summary: fields[3]}
