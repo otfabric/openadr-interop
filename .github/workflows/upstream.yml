@@ -70,8 +70,8 @@ jobs:
           go-version-file: conformance/go.mod
           cache-dependency-path: conformance/go.sum
 
-      # The summary line is the cross-stack self-test, or for a server the
-      # conformance suite, which runs last.
+      # The summary line is the last of the smoke test, the cross-stack
+      # self-test and, for a server, the conformance suite that ran.
       - name: Build and self-test at the latest release
         id: test
         if: steps.resolve.outputs.update == 'yes'
@@ -82,7 +82,7 @@ jobs:
           latest: ${{ steps.resolve.outputs.latest }}
           # The conformance suite and its known findings are part of the test.
           cache-paths: adapters/{name} Makefile scripts tests conformance
-          result-pattern: '^\[interop\] [0-9]+ passed|^[0-9]+ scenarios: '
+          result-pattern: '^\[(smoke|interop)\] [0-9]+ passed|^[0-9]+ scenarios: '
           command: >-
             make images &&
             make "candidate-${{ matrix.adapter }}"
