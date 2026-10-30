@@ -80,6 +80,8 @@ jobs:
           name: ${{ matrix.adapter }}
           pinned: ${{ steps.resolve.outputs.pin }}
           latest: ${{ steps.resolve.outputs.latest }}
+          # The conformance suite and its known findings are part of the test.
+          cache-paths: adapters/{name} Makefile scripts tests conformance
           result-pattern: '^\[interop\] [0-9]+ passed|^[0-9]+ scenarios: '
           command: >-
             make images &&
