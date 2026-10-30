@@ -44,7 +44,8 @@ repeated against a VTN that keeps its data. Do not point it at a production
 VTN.
 
 `-known FILE` names the scenarios that are known to fail against a version
-of the target, with the text of the failure (see [known/](known)). Such a
+of the target, with the text of the failure and the evidence URL of each
+(see [known/](known)). Such a
 failure is reported as a known finding. A listed scenario that fails
 differently, or passes, fails the run, so the list can neither hide a new
 failure nor outlive an old one.

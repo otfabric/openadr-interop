@@ -67,8 +67,11 @@ reference and the specification part ways. That is what the findings are.
 ## Findings
 
 A finding is not automatically a bug: some are places where the
-specification can be read more than one way. Each says which it is. None has
-been reported upstream yet.
+specification can be read more than one way. Each says which it is. The
+invalid-token status was reported upstream by others and fixed after v0.2.7
+([#494](https://github.com/OpenLEADR/openleadr-rs/issues/494)); the others
+have not been reported yet. [conformance/known](../conformance/known) gives
+the upstream evidence of the listed ones.
 
 ### OpenLEADR v0.2.7
 
@@ -77,7 +80,8 @@ AUTH-003, feature `serverInvalidTokenIs401`). A request without a token gets
 401; one with a forged token gets 403 with the detail "Invalid authentication
 token provided". The Definition says that the VTN "returns an Unauthorized
 response if invalid or expired". A client that fetches a new token on 401
-does not do so here.
+does not do so here. The fix ([#498](https://github.com/OpenLEADR/openleadr-rs/pull/498))
+came after v0.2.7, the pinned version.
 
 **ven objects have no `objectType`** (conformance VEN-001 and TARGET-001,
 feature `serverVenObjectType`). Resource objects have `"RESOURCE"`; ven
