@@ -17,7 +17,7 @@ Every image has the licence texts of what it contains under `/licenses`.
 
 | Component | Licence | In the image |
 |-----------|---------|--------------|
-| [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) v0.2.7, the `openleadr-vtn` binary | Apache-2.0 OR MIT | `/licenses/openleadr/` |
+| [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) v0.2.8, the `openleadr-vtn` binary | Apache-2.0 OR MIT | `/licenses/openleadr/` |
 | The Rust crates compiled into it (281) | Mostly MIT or Apache-2.0; each is listed with the licence it declares in `/licenses/crates/CRATES.txt` | `/licenses/crates/<crate>-<version>/`. Three crates ship no licence text and are listed in `NO-TEXT.txt` |
 | The Rust standard library | MIT OR Apache-2.0, with the notices of what it bundles | `/licenses/rust-std/` |
 | PostgreSQL 17 (Alpine package), the VTN's database | PostgreSQL licence | Alpine's package database; versions in `/licenses/alpine/PACKAGES.txt` |

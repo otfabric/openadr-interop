@@ -63,6 +63,13 @@ stable scenario IDs in `tests/cases.tsv`, and a fifth column in
 `tests/known-bugs.tsv`, the evidence URL of a waiver. The adapters, the
 fixtures and the container contract do not change.
 
+## v0.6.1 (released)
+
+The `openleadr` adapter moves to OpenLEADR v0.2.8, which answers a forged
+bearer token with 401: conformance AUTH-003 passes and is no longer a known
+finding, so `make conformance` gives 21 of 24 with 3 known findings. The
+container contract and the fixtures do not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:

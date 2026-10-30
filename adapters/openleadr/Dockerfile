@@ -23,8 +23,8 @@ ARG ALPINE_DIGEST=sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e
 FROM ${BASE_REGISTRY}/rust:1.94-alpine@${RUST_DIGEST} AS build
 
 # The upstream release and its commit. A candidate build overrides both.
-ARG UPSTREAM_VERSION=v0.2.7
-ARG UPSTREAM_SHA=f586cc3cf26fe2807041cadf989e219c6e5b2073
+ARG UPSTREAM_VERSION=v0.2.8
+ARG UPSTREAM_SHA=d1523514e522b45b66d1d293ed208afb52e606ad
 ARG ADAPTER_VERSION=dev
 
 RUN apk add --no-cache git cmake g++ make openssl-dev libgcc

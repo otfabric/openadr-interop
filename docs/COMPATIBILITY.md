@@ -8,7 +8,7 @@ is what CI and the release workflow reproduce on linux/amd64 and linux/arm64.
 
 | Adapter | Upstream | Version | Roles | Licence |
 |---------|----------|---------|-------|---------|
-| `openleadr` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.2.7, commit `f586cc3c` | server | Apache-2.0 OR MIT |
+| `openleadr` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.2.8, commit `d1523514` | server | Apache-2.0 OR MIT |
 | `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) | 2.4.0 (PyPI wheel) | client | Apache-2.0 |
 | `openleadr301` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.1.4, commit `92f4ba12`: the last release of OpenADR 3.0, serving 3.0.1 | server | Apache-2.0 OR MIT |
 
@@ -21,7 +21,7 @@ program → event → report workflow, for every client against every server.
 
 | Client | Server | Result |
 |--------|--------|--------|
-| `elaadnl` 2.4.0 | `openleadr` v0.2.7 | 73 checks pass, 5 cases skipped on declared capabilities |
+| `elaadnl` 2.4.0 | `openleadr` v0.2.8 | 73 checks pass, 5 cases skipped on declared capabilities |
 
 The skipped cases are the ones the capabilities below explain.
 
@@ -52,7 +52,7 @@ server.
 
 | Server | Result |
 |--------|--------|
-| `openleadr` v0.2.7 | 20 of 24 scenarios pass; 4 known findings |
+| `openleadr` v0.2.8 | 21 of 24 scenarios pass; 3 known findings |
 
 The suite asserts the OpenADR 3.1.0 OpenAPI document, so it runs against the
 servers of 3.1.0 only (`SERVER_ADAPTERS`, which leaves out `openleadr301`).
@@ -67,21 +67,15 @@ reference and the specification part ways. That is what the findings are.
 ## Findings
 
 A finding is not automatically a bug: some are places where the
-specification can be read more than one way. Each says which it is. The
-invalid-token status was reported upstream by others and fixed after v0.2.7
-([#494](https://github.com/OpenLEADR/openleadr-rs/issues/494)); the others
-have not been reported yet. [conformance/known](../conformance/known) gives
-the upstream evidence of the listed ones.
+specification can be read more than one way. Each says which it is. None of
+those of OpenLEADR v0.2.8 has been reported upstream yet.
+[conformance/known](../conformance/known) gives the upstream evidence of the
+listed ones. The 403 for an invalid token (AUTH-003), reported upstream by
+others ([#494](https://github.com/OpenLEADR/openleadr-rs/issues/494)), was
+fixed in v0.2.8 ([#498](https://github.com/OpenLEADR/openleadr-rs/pull/498))
+and is no longer a finding of it.
 
-### OpenLEADR v0.2.7
-
-**A bearer token the VTN did not issue is answered 403** (conformance
-AUTH-003, feature `serverInvalidTokenIs401`). A request without a token gets
-401; one with a forged token gets 403 with the detail "Invalid authentication
-token provided". The Definition says that the VTN "returns an Unauthorized
-response if invalid or expired". A client that fetches a new token on 401
-does not do so here. The fix ([#498](https://github.com/OpenLEADR/openleadr-rs/pull/498))
-came after v0.2.7, the pinned version.
+### OpenLEADR v0.2.8
 
 **ven objects have no `objectType`** (conformance VEN-001 and TARGET-001,
 feature `serverVenObjectType`). Resource objects have `"RESOURCE"`; ven

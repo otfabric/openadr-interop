@@ -80,8 +80,8 @@ def capabilities() -> dict:
             "serverTokenEndpoint": True,
             # ven objects are returned without objectType.
             "serverVenObjectType": False,
-            # A bearer token the VTN did not issue is answered 403, not 401.
-            "serverInvalidTokenIs401": False,
+            # A bearer token the VTN did not issue is answered 401.
+            "serverInvalidTokenIs401": True,
             # A VEN is shown the programs and events that carry a target it
             # was granted, whether or not its search names the target.
             "serverTargetsMustBeNamed": False,
