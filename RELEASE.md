@@ -32,7 +32,7 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 **Date:** 2026-10-30
 
-**Previous release:** v0.6.0
+**Previous release:** v0.5.0 (v0.6.0 was never tagged; its notes are below and ship in this release)
 
 ## Summary
 
