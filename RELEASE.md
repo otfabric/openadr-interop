@@ -28,6 +28,26 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 ---
 
+## v0.6.1
+
+**Date:** 2026-10-30
+
+**Previous release:** v0.6.0
+
+## Summary
+
+The `openleadr` adapter moves from OpenLEADR v0.2.7 to v0.2.8. The container contract, the fixtures and `openleadr301` do not change.
+
+## Changes
+
+### Changed
+
+- **`openleadr`**: OpenLEADR v0.2.8, commit `d1523514`.
+- **`serverInvalidTokenIs401`** of `openleadr` is now true: a bearer token the VTN did not issue is answered 401 ([openleadr-rs#498](https://github.com/OpenLEADR/openleadr-rs/pull/498)). Conformance AUTH-003 passes and is no longer a known finding: 21 of 24 scenarios pass, with 3 known findings.
+- **`conformance/known/openleadr.tsv`** is of v0.2.8, its permalinks at the commit of that release.
+
+---
+
 ## v0.6.0
 
 **Date:** 2026-10-30
