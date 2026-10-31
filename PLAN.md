@@ -70,6 +70,12 @@ bearer token with 401: conformance AUTH-003 passes and is no longer a known
 finding, so `make conformance` gives 21 of 24 with 3 known findings. The
 container contract and the fixtures do not change.
 
+## v0.6.2 (released)
+
+Policy 1.2 housekeeping: build artefacts move to `bin/` and `release/`, and the
+shared workflows move to v3.3.0. The adapters, the container contract and the
+fixtures do not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:

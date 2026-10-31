@@ -35,7 +35,7 @@ import (
 
 // version of the test suite; scripts/check-versions.sh keeps it in step with
 // interop_version of versions.yaml.
-const version = "0.6.1"
+const version = "0.6.2"
 
 type options struct {
 	url, tokenURL             string
