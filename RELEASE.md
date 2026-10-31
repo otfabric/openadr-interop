@@ -28,6 +28,17 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 ---
 
+## v0.6.2
+
+**Date:** 2026-10-31
+**Previous release:** v0.6.1
+
+### Changed
+
+- Policy 1.2: build output in `bin/` and `release/`, and shared CI at v3.3.0.
+
+---
+
 ## v0.6.1
 
 **Date:** 2026-10-30
