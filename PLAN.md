@@ -76,6 +76,12 @@ Policy 1.2 housekeeping: build artefacts move to `bin/` and `release/`, and the
 shared workflows move to v3.3.0. The adapters, the container contract and the
 fixtures do not change.
 
+## v0.6.3 (released)
+
+The `Release` workflow can be run by hand from the Actions tab with a patch,
+minor or major bump. The adapters, the container contract and the fixtures do
+not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:
