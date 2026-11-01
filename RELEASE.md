@@ -35,7 +35,7 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 ### Changed
 
-- Policy 1.2: build output in `bin/` and `release/`, and shared CI at v3.3.0.
+- The `Release` workflow can be run by hand from the Actions tab with a patch, minor or major bump, and checks that `versions.yaml` and RELEASE.md name that version before anything is built. The adapters, the container contract and the fixtures do not change.
 
 ---
 
