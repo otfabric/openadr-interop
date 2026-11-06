@@ -80,6 +80,7 @@ A reference VTN on loopback, and a reference client against it:
 
 ```sh
 make run-openleadr      # http://127.0.0.1:8080, the baseline fixture; Ctrl-C to stop
+                        # make run-cbsigma: cB-Sigma's VTN, likewise
                         # make run-openleadr301: OpenADR 3.0.1, the baseline-301 fixture
 
 docker run --rm --network host ghcr.io/otfabric/openadr-interop-elaadnl:dev \
@@ -124,7 +125,9 @@ docker run --rm ghcr.io/otfabric/openadr-interop-openleadr:dev print-fixture   #
 
 The VTN serves the [baseline fixture](docs/FIXTURES.md): its clients' IDs
 and secrets, and the objects to expect, are what `print-fixture` prints.
-For a client of OpenADR 3.0.1, use `openadr-interop-openleadr301` the same
+`openadr-interop-cbsigma` is a second VTN of 3.1.0, with another reading
+of targets (`serverTargetsUnlock` in [docs/CAPABILITIES.md](docs/CAPABILITIES.md)) and
+webhooks. For a client of OpenADR 3.0.1, use `openadr-interop-openleadr301` the same
 way; it serves `baseline-301` (`print-fixture baseline-301`), and the token
 URL is `<url>/auth/token`.
 
@@ -134,6 +137,18 @@ create the objects — and run reference client operations against it:
 ```sh
 docker run --rm ghcr.io/otfabric/openadr-interop-elaadnl:dev \
     client list-programs --as ven-1 --targets group-a --url http://my-vtn:8080
+```
+
+`openadr-interop-cbsigma` is a second reference client, of both roles. Its
+`listen-webhook` checks a VTN's webhooks: it serves a receiver in its
+container, subscribes, and waits for the notification (the container's name
+has to be what the VTN can reach):
+
+```sh
+docker run --rm --name hook --network my-net ghcr.io/otfabric/openadr-interop-cbsigma:dev \
+    client listen-webhook --as ven-1 --url http://my-vtn:8080 \
+    --callback-url http://hook:8090/notify --objects EVENT --operations CREATE --listen-ms 30000
+# meanwhile, create an event as Business Logic
 ```
 
 The exit code and the result document say what the reference client made of
