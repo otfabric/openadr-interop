@@ -2,7 +2,7 @@
 
 ## Ground rules
 
-- This repository knows no library under test ([REQUIREMENTS.md](REQUIREMENTS.md) R1). Nothing in `adapters`, `fixtures`, `schemas`, `scripts`, `tests` or `conformance` may name or depend on a consumer; CI checks it.
+- This repository knows no library under test ([REQUIREMENTS.md](REQUIREMENTS.md) R1). Nothing in `adapters`, `fixtures`, `schemas`, `scripts`, `tests` or `conformance` may name or depend on a consumer; CI checks it. `own/` is the one exception: the image of OT Fabric's own stack (`own/go-openadr/README.md`).
 - [docs/CONTAINER_CONTRACT.md](docs/CONTAINER_CONTRACT.md) is the interface. A change that a consumer could notice is a contract change: update the document, the schemas and the version.
 - An adapter adds nothing to the protocol. If a reference does something unexpected, that is a finding for [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md), not something to smooth over in the adapter.
 - A conformance scenario asserts the specification and says where: every scenario names operations of the OpenAPI document or sections of the Definition.

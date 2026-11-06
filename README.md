@@ -24,9 +24,9 @@ has no notifications. No reference client speaks 3.0.1 yet, so it is checked
 by `make smoke` and not paired in `make interop`; the conformance suite is
 of 3.1.0 only.
 
-**Status: v0.6.3**, container contract 1.4, for linux/amd64 and linux/arm64.
+**Status: v0.7.0**, container contract 1.4, for linux/amd64 and linux/arm64.
 The digests of its images are in the `manifest.json` of the
-[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.6.3).
+[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.7.0).
 See [PLAN.md](PLAN.md) and [RELEASE.md](RELEASE.md).
 
 **Docs:** [docs/CONTAINER_CONTRACT.md](docs/CONTAINER_CONTRACT.md) (commands, JSON documents, exit codes) · [docs/FIXTURES.md](docs/FIXTURES.md) (what a reference VTN holds) · [docs/CAPABILITIES.md](docs/CAPABILITIES.md) · [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) (pins, cross-stack matrix, findings) · [conformance/](conformance/README.md) (the specification-driven test suite) · [REQUIREMENTS.md](REQUIREMENTS.md) · [PLAN.md](PLAN.md) · [RELEASE.md](RELEASE.md)
@@ -35,6 +35,7 @@ See [PLAN.md](PLAN.md) and [RELEASE.md](RELEASE.md).
 
 - [What this repository is, and is not](#what-this-repository-is-and-is-not)
 - [Quick start](#quick-start)
+- [OT Fabric's own stack](#ot-fabrics-own-stack)
 - [Using the images from a library's tests](#using-the-images-from-a-librarys-tests)
 - [The conformance suite](#the-conformance-suite)
 - [Repository layout](#repository-layout)
@@ -49,7 +50,8 @@ container contract, the images and the self-tests that show the references
 agree with each other. It also holds a conformance suite that asserts the
 OpenADR specification against any VTN.
 
-It does not contain, import, build or know about any library under test.
+It does not contain, import, build or know about any library under test, apart
+from [one image](#ot-fabrics-own-stack) kept out of its releases.
 [otfabric/go-openadr](https://github.com/otfabric/go-openadr) is a consumer:
 it uses the images and owns its own scenarios, assertions and compatibility
 claims. A passing self-test here says the *references* interoperate; it says
@@ -97,6 +99,15 @@ use that URL.) The client prints one JSON document:
 [interop-result-v1](schemas/interop-result-v1.schema.json), for the cross-stack self-test. Only `pass`
 counts as passing: a run with no pass, or with a known bug that no longer reproduces, fails.
 
+## OT Fabric's own stack
+
+`ghcr.io/otfabric/openadr-interop-otfabric` is go-openadr behind the same contract,
+as a VTN and as its Business Logic and VEN clients, so you can test your stack
+against ours the way we test ours against yours. Despite the name it shares with
+the reference images, it is not an independent implementation and not part of a
+release of this repository, so its tags are go-openadr versions and
+`manifest.json` does not list it: see [own/go-openadr/README.md](own/go-openadr/README.md).
+
 ## Using the images from a library's tests
 
 **To test a client library**, start a reference server and point the
@@ -143,6 +154,7 @@ in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ```text
 adapters/<name>/     one reference implementation each: Dockerfile and adapter
+own/go-openadr/      OT Fabric's own stack behind the contract, outside the releases
 fixtures/            what a reference VTN holds; fixtures/schema/ is the JSON Schema
 schemas/             JSON Schemas of the capability and client result documents
 scripts/             self-tests (smoke, interop, conformance) and validators

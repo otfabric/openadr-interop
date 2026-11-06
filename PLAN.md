@@ -82,6 +82,14 @@ The `Release` workflow can be run by hand from the Actions tab with a patch,
 minor or major bump. The adapters, the container contract and the fixtures do
 not change.
 
+## v0.7.0 (released)
+
+The scripts take an image through `ADAPTER_IMAGE_<adapter>`, and `results.json`
+records whether an implementation is independent from what its image says.
+`own/go-openadr` and the manual workflow "Own stack (go-openadr)" build
+`openadr-interop-otfabric`, OT Fabric's own stack, outside the releases. The
+reference adapters, the container contract and the fixtures do not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:

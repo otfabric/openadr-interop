@@ -45,7 +45,9 @@ for adapter in "${ADAPTERS[@]}"; do
     docker run --rm "$(image_of "${adapter}")" print-capabilities > "${WORK}/caps-${adapter}.json" 2>/dev/null
     version=$(jq -r '.upstream.version' "${WORK}/caps-${adapter}.json")
     log "${adapter}: upstream ${version}"
-    printf '%s\t%s\t%s\n' "${adapter}" "${version}" "$(image_of "${adapter}")" >> "${WORK}/implementations.tsv"
+    # What the image says of itself: for an image outside versions.yaml, that is all there is.
+    printf '%s\t%s\t%s\t%s\n' "${adapter}" "${version}" "$(image_of "${adapter}")" \
+        "$(jq -c '.upstream' "${WORK}/caps-${adapter}.json")" >> "${WORK}/implementations.tsv"
     while IFS=$'\t' read -r bug_adapter bug_version bug_regex bug_text _; do
         [[ -z "${bug_adapter}" || "${bug_adapter}" == \#* ]] && continue
         if [[ "${bug_adapter}" == "${adapter}" && "${bug_version}" == "${version}" ]]; then
@@ -193,6 +195,9 @@ server_for() {
     if [[ "$(docker inspect -f '{{.State.Running}}' "${name}" 2>/dev/null)" != "true" ]]; then
         SERVER_TAG="${tag}" start_server "${adapter}" --fixture "/fixtures/${fixture}/fixture.json" >/dev/null
         wait_ready "${name}" || return 1
+        # A new server of an earlier name has IDs of its own: with two
+        # clients, each rw case starts its server again.
+        rm -f "${WORK}/ids-${name}"
     fi
     resolve "${name}" "${fixture}"
     echo "${name}"

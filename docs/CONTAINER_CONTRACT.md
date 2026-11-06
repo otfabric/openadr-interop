@@ -38,7 +38,7 @@ What a *VTN* holds when it is ready is defined by its fixture: see
 
 | Item | Value |
 |------|-------|
-| Image | `ghcr.io/otfabric/openadr-interop-<adapter>` |
+| Image | `ghcr.io/otfabric/openadr-interop-<adapter>`; OT Fabric's own stack is the adapter `otfabric` |
 | Entrypoint | `openadr-interop` (`/usr/local/bin/openadr-interop`) |
 | Default command | `server`; `print-capabilities` for an image without the server role |
 | Protocol | OpenADR 3.1.0, REST over plain HTTP |

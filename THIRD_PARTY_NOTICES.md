@@ -13,6 +13,17 @@ from it contain third-party software under its own licences.
 
 Every image has the licence texts of what it contains under `/licenses`.
 
+## Image `openadr-interop-otfabric`
+
+Built by hand from `own/go-openadr/`, not part of a release (`own/go-openadr/README.md`).
+
+| Component | Licence | In the image |
+|-----------|---------|--------------|
+| [go-openadr](https://github.com/otfabric/go-openadr), the latest release when built | MIT | `/licenses/github.com/otfabric/go-openadr/` |
+| The Go standard library, Go 1.27.2 | BSD-3-Clause | `/licenses/go/LICENSE` |
+| Debian trixie-slim base image | Various | Debian's `/usr/share/doc/*/copyright` |
+| The adapter | MIT | `/licenses/openadr-interop/LICENSE` |
+
 ## Image `openadr-interop-openleadr`
 
 | Component | Licence | In the image |
