@@ -3,7 +3,7 @@
 # The Dockerfiles (and adapters/cbsigma/go.mod) are the source of truth for a build:
 # scripts/check-versions.sh fails when this file disagrees with them.
 
-interop_version: "0.8.0"
+interop_version: "0.8.1"
 contract_version: "1.5"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
 fixture_schema: "1.1"          # fixtures/schema/openadr-fixture.schema.json
 
@@ -50,9 +50,9 @@ implementations:
     upstream: "ElaadNL openadr3-client"
     repository: "https://github.com/ElaadNL/openadr3-client"
     artifact: "pypi:openadr3-client"
-    version: "2.4.0"             # latest release
-    revision: "7b995c64d81079b73b916aae925d88e6f6a24327"   # tag 2.4.0; information, the build installs the wheel
-    wheel_sha256: "046d01c0a83b4dda617b191c30db76e9222773c7bc00d76a65b9dab0996635c7"
+    version: "2.4.2"             # latest release
+    revision: "134ff74e50a1865435ea8a9a15980bea418e0dac"   # tag 2.4.2; information, the build installs the wheel
+    wheel_sha256: "f46d2dc21356c00ea74839aae3bd6f7e97e55bd6e991cdc7a0caab94d9e8dedf"
     license: "Apache-2.0"
     language: "Python"
     independent_engine: true

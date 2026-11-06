@@ -54,7 +54,7 @@ says which is which.
 
 | | `openleadr` | `elaadnl` | `openleadr301` | `cbsigma` |
 |---|:---:|:---:|:---:|:---:|
-| Upstream | OpenLEADR openleadr-rs v0.2.8 | ElaadNL openadr3-client 2.4.0 | OpenLEADR openleadr-rs v0.1.4 | cB-Sigma openadr v0.2.0 |
+| Upstream | OpenLEADR openleadr-rs v0.2.8 | ElaadNL openadr3-client 2.4.2 | OpenLEADR openleadr-rs v0.1.4 | cB-Sigma openadr v0.2.0 |
 | OpenADR | 3.1.0 | 3.1.0 | 3.0.1 | 3.1.0 |
 | Language | Rust | Python | Rust | Go |
 | Server role | yes | no | yes | yes |

@@ -23,7 +23,7 @@ FROM ${BASE_REGISTRY}/python:3.14.8-slim-trixie@${PYTHON_DIGEST} AS build
 # dependency, with the hashes of their files. A candidate build overrides
 # UPSTREAM_VERSION: there is no lock for another release, so it is installed
 # with whatever dependencies it resolves to, without hash checking.
-ARG UPSTREAM_VERSION=2.4.0
+ARG UPSTREAM_VERSION=2.4.2
 ARG ADAPTER_VERSION=dev
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
