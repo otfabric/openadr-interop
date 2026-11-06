@@ -9,7 +9,7 @@ is what CI and the release workflow reproduce on linux/amd64 and linux/arm64.
 | Adapter | Upstream | Version | Roles | Licence |
 |---------|----------|---------|-------|---------|
 | `openleadr` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.2.8, commit `d1523514` | server | Apache-2.0 OR MIT |
-| `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) | 2.4.0 (PyPI wheel) | client | Apache-2.0 |
+| `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) | 2.4.2 (PyPI wheel) | client | Apache-2.0 |
 | `openleadr301` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.1.4, commit `92f4ba12`: the last release of OpenADR 3.0, serving 3.0.1 | server | Apache-2.0 OR MIT |
 | `cbsigma` | [cB-Sigma openadr](https://github.com/cB-Sigma/openadr) | v0.2.0, commit `ed824170` (tags only, no GitHub release) | server and client | Apache-2.0 |
 
@@ -22,9 +22,9 @@ program → event → report workflow, for every client against every server.
 
 | Client | Server | Result |
 |--------|--------|--------|
-| `elaadnl` 2.4.0 | `openleadr` v0.2.8 | 73 checks pass, 12 skipped on declared capabilities |
+| `elaadnl` 2.4.2 | `openleadr` v0.2.8 | 73 checks pass, 12 skipped on declared capabilities |
 | `cbsigma` v0.2.0 | `openleadr` v0.2.8 | 71 checks pass, 14 skipped |
-| `elaadnl` 2.4.0 | `cbsigma` v0.2.0 | 65 checks pass, 20 skipped |
+| `elaadnl` 2.4.2 | `cbsigma` v0.2.0 | 65 checks pass, 20 skipped |
 | `cbsigma` v0.2.0 | `cbsigma` v0.2.0 | 70 checks pass, 17 skipped; the webhook is notified |
 
 The skipped cases are the ones the capabilities below explain. A case of
@@ -235,7 +235,7 @@ ven, `/vens/{venID}/resources`, and inlined in the ven object as `resources`;
 required in the requests tried (a program, a report). The VTN listens on port 3000 whatever it is told; the image
 forwards the port of the contract to it.
 
-### ElaadNL openadr3-client 2.4.0
+### ElaadNL openadr3-client 2.4.2
 
 **A program with a report payload descriptor is an invalid response**
 (feature `clientReportDescriptorsInPrograms`, fixture `descriptors`).

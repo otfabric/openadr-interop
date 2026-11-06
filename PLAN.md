@@ -99,6 +99,13 @@ Contract 1.5 adds webhooks (`listen-webhook`, feature `clientWebhook`) and
 the server feature `serverTargetsUnlock`, the reading of targets of the
 `cbsigma` VTN. The fixtures do not change.
 
+## v0.8.1 (released)
+
+The `elaadnl` adapter moves to ElaadNL openadr3-client 2.4.2. The library's
+code is that of 2.4.0; its dependencies moved (oauthlib 4, security fixes of
+transitive packages). The cross-stack results are unchanged. The container
+contract and the fixtures do not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:
