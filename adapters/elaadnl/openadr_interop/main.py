@@ -177,6 +177,9 @@ def capabilities() -> dict:
             # topic: the library's model requires CREATE and ALL, the
             # specification UPDATE and DELETE.
             "clientTopicsOfOneObject": False,
+            # No listen-webhook (contract 1.5): the adapter does not wrap a
+            # webhook receiver.
+            "clientWebhook": False,
         },
         "serverObjects": [],
         "clientOperations": CLIENT_OPERATIONS,

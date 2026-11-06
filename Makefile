@@ -31,11 +31,11 @@ BUILDER ?= openadr-interop
 
 # Adapters with a published image, in priority order. The self-tests run over
 # all of them; override to work on one: make smoke ADAPTERS=elaadnl
-ADAPTERS ?= openleadr elaadnl openleadr301
+ADAPTERS ?= openleadr elaadnl openleadr301 cbsigma
 
 # The servers the conformance suite runs against. The suite asserts the
 # OpenADR 3.1.0 OpenAPI document, so openleadr301 (3.0.1) is not one of them.
-SERVER_ADAPTERS ?= openleadr
+SERVER_ADAPTERS ?= openleadr cbsigma
 
 image = $(REGISTRY)/openadr-interop-$(1)
 

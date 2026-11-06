@@ -43,6 +43,8 @@ Schema: [schemas/capabilities.schema.json](../schemas/capabilities.schema.json).
 | `clientSubscriptionOperations310` | The client names the operations of a subscription as OpenADR 3.1.0 does: `CREATE`, `READ`, `UPDATE`, `DELETE` |
 | `clientNotifiersWithoutMqtt` | The client reads `GET /notifiers` of a VTN that has no MQTT broker |
 | `clientTopicsOfOneObject` | The client reads the topics of one program or ven, which have no `CREATE` topic |
+| `clientWebhook` | The client has `listen-webhook` (contract 1.5) |
+| `serverTargetsUnlock` | For a VEN, the targets a request names unlock the targeted objects it was granted and narrow nothing: a search that names targets returns the objects without targets too, and a targeted object is read by ID only with its target in the query (contract 1.5). Without it, targets in a VEN's search narrow it to the objects that carry one, and a VEN reads a targeted object it was granted by ID |
 
 A feature that is false is not necessarily a fault: `serverTargetsMustBeNamed`
 is a reading of text the specification leaves open. [COMPATIBILITY.md](COMPATIBILITY.md)
@@ -50,35 +52,48 @@ says which is which.
 
 ## The adapters
 
-| | `openleadr` | `elaadnl` | `openleadr301` |
-|---|:---:|:---:|:---:|
-| Upstream | OpenLEADR openleadr-rs v0.2.8 | ElaadNL openadr3-client 2.4.0 | OpenLEADR openleadr-rs v0.1.4 |
-| OpenADR | 3.1.0 | 3.1.0 | 3.0.1 |
-| Language | Rust | Python | Rust |
-| Server role | yes | no | yes |
-| Client role | no | yes | no |
-| `serverTokenEndpoint` | yes | | yes |
-| `serverVenObjectType` | no | | yes |
-| `serverInvalidTokenIs401` | yes | | no |
-| `serverTargetsMustBeNamed` | no | | no |
-| `serverMqtt` | yes | | no |
-| `serverMdns` | yes | | no |
-| `mdnsDiscover` | yes | | no |
-| `serverNotifiersWebhook` | no | | no |
-| `serverResourceGroups` | yes | | no |
-| `clientTokenDiscovery` | | yes | |
-| `clientReportDescriptorsInPrograms` | | no | |
-| `clientAnonymous` | | yes | |
-| `clientResourceGroups` | | yes | |
-| `clientMqtt` | | yes | |
-| `clientSubscriptionOperations310` | | no | |
-| `clientNotifiersWithoutMqtt` | | no | |
-| `clientTopicsOfOneObject` | | no | |
+| | `openleadr` | `elaadnl` | `openleadr301` | `cbsigma` |
+|---|:---:|:---:|:---:|:---:|
+| Upstream | OpenLEADR openleadr-rs v0.2.8 | ElaadNL openadr3-client 2.4.0 | OpenLEADR openleadr-rs v0.1.4 | cB-Sigma openadr v0.2.0 |
+| OpenADR | 3.1.0 | 3.1.0 | 3.0.1 | 3.1.0 |
+| Language | Rust | Python | Rust | Go |
+| Server role | yes | no | yes | yes |
+| Client role | no | yes | no | yes |
+| `serverTokenEndpoint` | yes | | yes | yes |
+| `serverVenObjectType` | no | | yes | yes |
+| `serverInvalidTokenIs401` | yes | | no | yes |
+| `serverTargetsMustBeNamed` | no | | no | yes |
+| `serverMqtt` | yes | | no | no |
+| `serverMdns` | yes | | no | no |
+| `mdnsDiscover` | yes | | no | no |
+| `serverNotifiersWebhook` | no | | no | yes |
+| `serverResourceGroups` | yes | | no | no |
+| `clientTokenDiscovery` | | yes | | yes |
+| `clientReportDescriptorsInPrograms` | | no | | yes |
+| `clientAnonymous` | | yes | | yes |
+| `clientResourceGroups` | | yes | | no |
+| `clientMqtt` | | yes | | no |
+| `clientSubscriptionOperations310` | | no | | yes |
+| `clientNotifiersWithoutMqtt` | | no | | yes |
+| `clientTopicsOfOneObject` | | no | | yes |
+| `clientWebhook` | | no | | yes |
+| `serverTargetsUnlock` | no | | no | yes |
 
 `elaadnl` offers a Business Logic client every operation except writing
 reports and subscriptions, and a VEN client every operation except writing
 programs, events and resource groups. Both have `get-notifiers`, `get-topics`
 and `listen-mqtt`.
+
+`cbsigma` offers a Business Logic client every operation except writing
+reports, and a VEN client every operation except writing programs and
+events, as the scopes of OpenADR 3.1.0 have it; it has no resource groups.
+Both have `get-notifiers`, `get-topics` and `listen-webhook`. Its client is
+the library's REST client, which keeps objects as JSON: `response` is the
+VTN's answer as decoded JSON, after the library's checks of the request.
+The library has no webhook receiver: the receiver of `listen-webhook` is the
+adapter's. Not wired, though the library has them: the VTN's MQTT notifier
+(it publishes through a broker client the application supplies), DNS-SD
+(`oadr3/mdns`) and OpenADR 3.0 (`vtn.Version30`).
 
 `openleadr301` serves OpenADR 3.0.1 only: no broker, no announcement, no
 notifiers, no subscriptions, no resource groups, and no `--mqtt-port`,

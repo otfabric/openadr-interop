@@ -124,9 +124,15 @@ jobs:
           ref: ${{ needs.version.outputs.harness }}
           path: harness
 
+      # The references are the adapters of that release's Makefile, so a
+      # release before an adapter was added runs without it.
       - name: Pull the reference images of ${{ needs.version.outputs.harness }}
+        id: references
         run: |
-          for a in openleadr elaadnl openleadr301; do
+          adapters=$(sed -nE 's/^ADAPTERS \?= (.*)$/\1/p' harness/Makefile)
+          [ -n "${adapters}" ] || { echo "::error::no ADAPTERS in the Makefile of the harness release"; exit 1; }
+          echo "adapters=${adapters}" >> "$GITHUB_OUTPUT"
+          for a in ${adapters}; do
             scripts/retry.sh docker pull --quiet "ghcr.io/otfabric/openadr-interop-${a}:${VERSION}"
             docker run --rm "ghcr.io/otfabric/openadr-interop-${a}:${VERSION}" print-capabilities \
               | jq -r --arg image "${a}:${VERSION}" '"- \($image): \(.upstream.name) \(.upstream.version)"' | tee -a "$GITHUB_STEP_SUMMARY"
@@ -138,7 +144,8 @@ jobs:
           set -o pipefail
           mkdir -p reports
           REPORT_DIR=reports scripts/smoke.sh otfabric
-          REPORT_DIR=reports scripts/interop.sh otfabric openleadr elaadnl openleadr301 2>&1 | tee reports/interop.log
+          # shellcheck disable=SC2086 # one word per adapter
+          REPORT_DIR=reports scripts/interop.sh otfabric ${{ steps.references.outputs.adapters }} 2>&1 | tee reports/interop.log
           python3 scripts/validate-documents.py reports
           grep -E '^\[(smoke|interop)\]' reports/interop.log | tee -a "$GITHUB_STEP_SUMMARY" || true
 

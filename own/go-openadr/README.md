@@ -52,6 +52,9 @@ private addresses allowed, for a test network) and serves resource groups. It
 answers no request without a token. The fixture is loaded through the VTN's own
 API, as its Business Logic client.
 
+`listen-webhook` (contract 1.5) serves `webhook.Handler` as the receiver and
+writes the subscription with the library's client for the role.
+
 A request body (`--body`) is read with the library's own codec
 (`storage.Decode`) and the answer written with it (`storage.Encode`), so what
 reaches the VTN is what an application using go-openadr would send.
@@ -74,7 +77,7 @@ harness release or `manifest.json`.
 Run the **Own stack (go-openadr)** workflow by hand, from `main`. It finds the
 latest go-openadr release and the latest harness release, and prints them. It
 builds the image, runs the smoke test, the cross-stack self-test against
-`openleadr`, `elaadnl` and `openleadr301`, and the conformance suite against its
+the reference adapters of that harness release (`ADAPTERS` of its Makefile), and the conformance suite against its
 VTN, on both architectures, then publishes `:<go-openadr version>` and
 `:latest`. Run from a branch, it stops before publishing. Nothing runs it
 automatically, so after a go-openadr release the image stays on the old version

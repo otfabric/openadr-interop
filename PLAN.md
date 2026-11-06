@@ -90,20 +90,33 @@ records whether an implementation is independent from what its image says.
 `openadr-interop-otfabric`, OT Fabric's own stack, outside the releases. The
 reference adapters, the container contract and the fixtures do not change.
 
+## v0.8.0 (released)
+
+A second independent stack, and the first in both roles: `cbsigma`, cB-Sigma
+openadr v0.2.0 (Go), as a VTN and as Business Logic and VEN clients. It
+pairs a second client with `openleadr` and a second server with `elaadnl`.
+Contract 1.5 adds webhooks (`listen-webhook`, feature `clientWebhook`) and
+the server feature `serverTargetsUnlock`, the reading of targets of the
+`cbsigma` VTN. The fixtures do not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:
   a second independent client, and with it cross-client comparison of result
   documents.
-- **A second server.** Candidates: the OpenADR Alliance's reference
+- **A third server.** Candidates: the OpenADR Alliance's reference
   implementation of the VTN, if its licence allows redistribution in an
   image.
+- **More of `cbsigma`**: its VTN's MQTT notifier (with a broker in the
+  image, so that `listen-mqtt` of `elaadnl` has a second broker), DNS-SD
+  (`oadr3/mdns`), and OpenADR 3.0 (`vtn.Version30`), which would make it a
+  3.0.1 server and, with its generic client, the client of 3.0.1 below.
 - **Conformance scenarios** for the lifecycle of events, reports, VENs and
   resources at the depth programs have; token expiry; the request side
   (validating what a reference client sends against the request schemas).
-- **Subscriptions and notifications**: webhook delivery, MQTT topic
-  discovery and delivery. OpenLEADR supports MQTT and not webhooks; the
-  contract needs a way for a client to wait for a notification.
+- **Notifications beyond one webhook**: updates and deletes, notifications
+  for programs, reports and vens, and MQTT delivery from a VTN other than
+  OpenLEADR. v0.8.0 checks one: an event created, at a VEN's webhook.
 - **A client of OpenADR 3.0.1**, so that `openleadr301` is in a pairing
   and the cross-stack cases run in 3.0.1 too (with cases of `baseline-301`).
   The pinned ElaadNL client is of 3.1.0; whether an earlier release speaks

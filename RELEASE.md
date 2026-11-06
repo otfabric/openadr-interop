@@ -31,6 +31,28 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 ---
 
+## v0.8.0
+
+**Date:** 2026-11-06
+**Previous release:** v0.7.0
+
+### Added
+
+- **`cbsigma`**: [cB-Sigma openadr](https://github.com/cB-Sigma/openadr) v0.2.0 (Go, Apache-2.0), an independent OpenADR 3.1.0 stack in both roles, published as `ghcr.io/otfabric/openadr-interop-cbsigma`. The server is its VTN (`oadr3/vtn`) with its own token endpoint and webhooks; the clients are its REST client (`oadr3.APIClient`), which checks a request body with the library's `oadr3.CheckRequest` before it is sent. It is a second client for `openleadr` and a second server for `elaadnl`, and its VTN passes the 24 conformance scenarios. A bug of its VTN found on the way, a VEN that cannot read a targeted object by ID, is [cB-Sigma/openadr#1](https://github.com/cB-Sigma/openadr/issues/1), tracked in [#19](https://github.com/otfabric/openadr-interop/issues/19). `go.mod` and `go.sum` of `adapters/cbsigma` hold the pin; `scripts/check-versions.sh` checks that they and the Dockerfile agree, and the Upstream workflow follows the tags of cB-Sigma/openadr.
+- **Contract 1.5, webhooks:** the client operation `listen-webhook` (feature `clientWebhook`) serves a receiver, subscribes with the library's client and waits for notifications. `scripts/interop.sh` has a webhook scenario: a VEN subscribes, Business Logic creates an event, and the VTN notifies the VEN's webhook with the subscription's bearer token. `cbsigma` has it, and so does `own/go-openadr` (with go-openadr's `webhook.Handler`) from its next build.
+- **Contract 1.5, `serverTargetsUnlock`:** the reading of targets of the `cbsigma` VTN. For a VEN, the targets a request names unlock the targeted objects it was granted and narrow nothing: a search naming targets returns the untargeted objects too, and a targeted object is not found by ID, as `GET /programs/{programID}` has no parameter to name its target. Cases of either reading run against the servers that have it.
+- A case for `GET /notifiers` of a VTN without MQTT.
+
+### Changed
+
+- The workflow check of the event's start time accepts `+00:00` as well as `Z`: OpenLEADR writes the former, and a client that hands over the VTN's JSON as it is (`cbsigma`) passes it on.
+- `needs` in `tests/cases.tsv` takes `server:!<feature>` and `client:!<feature>`: the case runs only where the feature is not declared.
+- The Own stack workflow runs the cross-stack self-test against the adapters of the harness release's Makefile, so a release that adds an adapter adds it there too.
+
+The fixtures do not change.
+
+---
+
 ## v0.7.0
 
 **Date:** 2026-11-06

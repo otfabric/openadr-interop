@@ -1,6 +1,6 @@
 # Container contract
 
-Version: **1.4** (`contract_version` in [versions.yaml](../versions.yaml))
+Version: **1.5** (`contract_version` in [versions.yaml](../versions.yaml))
 
 Every adapter image exposes the same commands, flags, JSON documents and exit
 codes. Consumers depend on this document, not on any adapter's source. A
@@ -15,6 +15,7 @@ and changes only with the major version.
 | 1.2 | A server may announce itself with DNS-SD over Multicast DNS (feature `serverMdns`): `--mdns-name`, `mdnsName` in the `ready` event. An image may look for VTNs (feature `mdnsDiscover`): the command `discover` |
 | 1.3 | Client operations on subscriptions and on resource groups, `get-notifiers`, `get-topics` and `listen-mqtt`; a client without a token, `--anonymous ROLE` in place of `--as` (feature `clientAnonymous`) |
 | 1.4 | OpenADR 3.0.1: `"3.0.1"` in `openadrVersions`, fixtures of either revision (`openadrVersion`), and the default fixture of a server is the baseline of the revision it serves (`baseline-301` for 3.0.1). A fixture of a revision the image does not serve is invalid: exit 4 for `server`, a usage error for `client` |
+| 1.5 | Webhooks: the client operation `listen-webhook` (feature `clientWebhook`). The server feature `serverTargetsUnlock`, a reading of targets in a VEN's requests. Both optional: an image that does not name them has not got them |
 
 An adapter has the server role, the client role, or both. What an image
 lacks it says in [`print-capabilities`](#print-capabilities); a command or
@@ -244,6 +245,45 @@ with each payload as JSON when it is JSON. Too few in time is the error
 refuses the client or the subscription is `failed`. The client says on stderr
 when it has subscribed, which is for people: a consumer that publishes while
 the client listens keeps publishing until the client returns.
+
+### Webhooks
+
+Only with the feature `clientWebhook` (contract 1.5).
+
+| Operation | Requests | Flags |
+|-----------|----------|-------|
+| `listen-webhook` | `POST /subscriptions`, then the VTN's requests to the callback, then `DELETE /subscriptions/{id}` | `--callback-url URL`, and those below |
+
+The client serves a webhook receiver on `--listen-port`, creates a
+subscription with the library's client whose one `objectOperations` entry
+names `--callback-url`, a random bearer token, `--objects` and
+`--operations`, and waits for notifications. The receiver answers the VTN's
+check of the URL (`GET` with an `echo` parameter, answered 200 with its value)
+and refuses a notification without the subscription's bearer token. When it
+has the notifications, or the time is up, the client deletes the subscription.
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--callback-url URL` | required | The callback as the VTN reaches the receiver, e.g. `http://<client container>:8090/notify` |
+| `--listen-port N` | 8090 | The receiver's port in the client's container |
+| `--program-id ID` | | `programID` of the subscription |
+| `--objects LIST` | `EVENT` | Comma-separated object types of the subscription |
+| `--operations LIST` | `CREATE` | Comma-separated operations: `CREATE`, `READ`, `UPDATE`, `DELETE` |
+| `--messages N` | 1 | How many notifications to wait for, 1..1000 |
+| `--listen-ms N` | 10000 | How long to wait for them after subscribing, 1..600000 |
+
+`--anonymous` is a usage error: a subscription is written as a client of the
+fixture. Once the subscription is accepted the client writes
+`{"event":"subscribed","subscription":ID,"callbackUrl":URL}` on stderr,
+which is for people and for a test that has to know when to change
+something; it is not part of the result.
+
+It succeeds when it has received `--messages` notifications, and then
+`response` is `{ "subscription", "callbackUrl", "messages" }`: the
+subscription as the VTN created it, and each notification as the client read
+it (`objectType`, `operation`, `object`). A VTN that refuses the subscription,
+for instance because the callback did not answer its check, is `http-error`;
+too few notifications in time is `timeout`.
 
 ### Result document
 

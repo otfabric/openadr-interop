@@ -55,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        adapter: [openleadr, elaadnl, openleadr301]
+        adapter: [openleadr, elaadnl, openleadr301, cbsigma]
     steps:
       - uses: actions/checkout@v7
 
@@ -136,7 +136,8 @@ jobs:
 
             - **Library:** move `ARG UPSTREAM_VERSION` (openleadr and openleadr301 also
               `UPSTREAM_SHA`) in `adapters/<adapter>/Dockerfile`, the adapter's lock file
-              (`requirements.txt` of elaadnl; OpenLEADR builds against its own `Cargo.lock`) and
+              (`requirements.txt` of elaadnl, `go.mod` and `go.sum` of cbsigma; OpenLEADR builds
+              against its own `Cargo.lock`) and
               `versions.yaml`; openleadr301 follows v0.1.x only. Reproduce a candidate with
               `make candidate-<adapter> CANDIDATE_VERSION=<version>` (openleadr and openleadr301
               also `CANDIDATE_SHA=<commit>`); a `failure` needs the self-test log of the run first.

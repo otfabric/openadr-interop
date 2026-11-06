@@ -71,14 +71,19 @@ role_of() { jq -r --arg n "$2" '.clients[] | select(.name == $n) | .role' "${ROO
 offers() { jq -e --arg role "$2" --arg op "$3" '.clientOperations[$role] | index($op) != null' "${WORK}/caps-$1.json" >/dev/null 2>&1; }
 
 # supported <client> <server> <needs>: the pairing declares every feature in
-# the comma-separated list of "server:<feature>" and "client:<feature>".
+# the comma-separated list of "server:<feature>" and "client:<feature>", and
+# none of those written "server:!<feature>" or "client:!<feature>".
 supported() {
-    local need side feature
+    local need side feature subject
     [[ "$3" == "-" ]] && return 0
     for need in ${3//,/ }; do
         side="${need%%:*}"; feature="${need#*:}"
-        if [[ "${side}" == "server" ]]; then has "$2" "${feature}" || return 1
-        else has "$1" "${feature}" || return 1; fi
+        if [[ "${side}" == "server" ]]; then subject="$2"; else subject="$1"; fi
+        if [[ "${feature}" == '!'* ]]; then
+            has "${subject}" "${feature#!}" && return 1
+        else
+            has "${subject}" "${feature}" || return 1
+        fi
     done
     return 0
 }
@@ -286,7 +291,7 @@ for server in "${SERVERS[@]}"; do
         keep "workflow-${cl}-${server}-4-list-events" "${doc}"
         check "${pair}: the VEN reads the event as it was published" "${doc}" '.ok and (.response | length) == 1
             and .response[0].eventName == "workflow-prices" and .response[0].priority == 3
-            and (.response[0].intervalPeriod.start | fromdateiso8601) == 1938074400
+            and (.response[0].intervalPeriod.start | sub("(\\.[0-9]+)?(Z|[+]00:00)$"; "Z") | fromdateiso8601) == 1938074400
             and ([.response[0].intervals[] | .payloads[0].values[0]] == [0.31, 0.24])
             and ([.response[0].intervals[].id] == [0, 1])
             and .response[0].reportDescriptors[0].payloadType == "USAGE"'
@@ -327,6 +332,65 @@ for server in "${SERVERS[@]}"; do
         at workflow.program-gone
         doc=$(c get-program --as bl --id "${program}")
         check "${pair}: the program is gone" "${doc}" '.ok == false and .status == 404'
+        stop_server "${name}"
+    done
+done
+
+# ---- webhooks, checked on values (contract 1.5) ----
+# A VEN of the client adapter subscribes with listen-webhook, in a container
+# of its own whose name is the callback's host; Business Logic creates an
+# event; the VTN notifies the webhook. The VTN checks the callback before it
+# accepts the subscription and sends the subscription's bearer token, which
+# the receiver requires.
+for server in "${SERVERS[@]}"; do
+    for cl in "${CLIENTS[@]}"; do
+        pair="${cl}->${server}"
+        paired "${cl}" "${server}" || continue
+        at webhook.all
+        if ! has "${cl}" clientWebhook || ! has "${server}" serverNotifiersWebhook \
+            || ! offers "${cl}" ven listen-webhook || ! offers "${cl}" bl create-event; then
+            skip "${pair}: webhook"; continue
+        fi
+        n="webhook"
+        at webhook.server
+        name=$(server_for "${server}" baseline rw) || { fail "${pair}: no ${server} server for the webhook"; continue; }
+        program=$(awk -F'\t' '$1 == "program:day-ahead" { print $2; exit }' "${WORK}/ids-${name}")
+        hook="hook-${cl}-${server}-${RUN_ID}"
+
+        at webhook.subscribe
+        docker run -d --name "${hook}" --network "${NETWORK}" --label "openadr-interop.run=${RUN_ID}" \
+            "$(image_of "${cl}")" client listen-webhook --url "$(url_of "${name}")" --as ven-1 \
+            --fixture /fixtures/baseline/fixture.json --callback-url "http://${hook}:8090/notify" \
+            --program-id "${program}" --objects EVENT --operations CREATE --listen-ms 30000 >/dev/null
+        subscribed=""
+        for _ in $(seq 120); do
+            if docker logs "${hook}" 2>&1 >/dev/null | grep -q '"event":"subscribed"'; then subscribed=1; break; fi
+            [[ "$(docker inspect -f '{{.State.Running}}' "${hook}" 2>/dev/null)" == "true" ]] || break
+            sleep 0.25
+        done
+        if [[ -z "${subscribed}" ]]; then
+            docker wait "${hook}" >/dev/null 2>&1
+            fail "${pair}: the VEN subscribes with a webhook: $(docker logs "${hook}" 2>/dev/null | jq -c '{ok, error, status, problem}' 2>/dev/null | cut -c1-600)"
+            docker rm -f "${hook}" >/dev/null 2>&1
+            stop_server "${name}"
+            continue
+        fi
+        ok "${pair}: the VEN subscribes with a webhook"
+
+        at webhook.create-event
+        doc=$(client "${cl}" "${name}" baseline create-event --as bl --body "{\"programID\":\"${program}\",\"eventName\":\"webhook-event\",\"intervals\":[{\"id\":0,\"payloads\":[{\"type\":\"PRICE\",\"values\":[0.42]}]}]}")
+        check "${pair}: Business Logic creates an event in the program" "${doc}" '.ok and .status == 201'
+
+        at webhook.notified
+        docker wait "${hook}" >/dev/null 2>&1
+        doc=$(docker logs "${hook}" 2>/dev/null)
+        keep "webhook-${cl}-${server}" "${doc}"
+        check "${pair}: the VEN's webhook is notified of the event, with the bearer token" "${doc}" '.ok
+            and .response.subscription.objectOperations[0].callbackUrl == .response.callbackUrl
+            and .response.messages[0].objectType == "EVENT" and .response.messages[0].operation == "CREATE"
+            and .response.messages[0].object.eventName == "webhook-event"
+            and .response.messages[0].object.intervals[0].payloads[0].values == [0.42]'
+        docker rm -f "${hook}" >/dev/null 2>&1
         stop_server "${name}"
     done
 done

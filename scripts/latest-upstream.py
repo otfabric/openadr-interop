@@ -79,10 +79,18 @@ def elaadnl():
     return newest(live), "", "PyPI"
 
 
+def cbsigma():
+    # Tags only: no GitHub releases, no Go proxy listing needed.
+    tags = git_tags("https://github.com/cB-Sigma/openadr.git")
+    latest = newest(tags)
+    return latest, tags[latest], "git tags of cB-Sigma/openadr"
+
+
 RESOLVERS = {
     "openleadr": openleadr,
     "elaadnl": elaadnl,
     "openleadr301": openleadr301,
+    "cbsigma": cbsigma,
 }
 
 

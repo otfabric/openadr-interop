@@ -11,6 +11,7 @@ is what CI and the release workflow reproduce on linux/amd64 and linux/arm64.
 | `openleadr` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.2.8, commit `d1523514` | server | Apache-2.0 OR MIT |
 | `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) | 2.4.0 (PyPI wheel) | client | Apache-2.0 |
 | `openleadr301` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) | v0.1.4, commit `92f4ba12`: the last release of OpenADR 3.0, serving 3.0.1 | server | Apache-2.0 OR MIT |
+| `cbsigma` | [cB-Sigma openadr](https://github.com/cB-Sigma/openadr) | v0.2.0, commit `ed824170` (tags only, no GitHub release) | server and client | Apache-2.0 |
 
 The full pins, with base image digests, are in [versions.yaml](../versions.yaml).
 
@@ -21,9 +22,22 @@ program → event → report workflow, for every client against every server.
 
 | Client | Server | Result |
 |--------|--------|--------|
-| `elaadnl` 2.4.0 | `openleadr` v0.2.8 | 73 checks pass, 5 cases skipped on declared capabilities |
+| `elaadnl` 2.4.0 | `openleadr` v0.2.8 | 73 checks pass, 12 skipped on declared capabilities |
+| `cbsigma` v0.2.0 | `openleadr` v0.2.8 | 71 checks pass, 14 skipped |
+| `elaadnl` 2.4.0 | `cbsigma` v0.2.0 | 65 checks pass, 20 skipped |
+| `cbsigma` v0.2.0 | `cbsigma` v0.2.0 | 70 checks pass, 17 skipped; the webhook is notified |
 
-The skipped cases are the ones the capabilities below explain.
+The skipped cases are the ones the capabilities below explain. A case of
+either reading of targets (`serverTargetsUnlock`) runs against the servers
+of that reading and is skipped against the others, so every server skips
+some.
+
+`cbsigma` against OT Fabric's own stack (`otfabric`, go-openadr v0.6.0 with
+`listen-webhook`, not part of the release): 70 checks pass with either as
+the client, the webhook is notified both ways (the `cbsigma` VTN to
+go-openadr's `webhook.Handler`, go-openadr's `webhook.Sender` to the
+`cbsigma` receiver). These are not results of a release image of
+`otfabric`, which is built by hand (`own/go-openadr/README.md`).
 
 A client and a server are paired only when they share an OpenADR version
 (`openadrVersions`), and `make interop` says so for each pairing:
@@ -53,6 +67,7 @@ server.
 | Server | Result |
 |--------|--------|
 | `openleadr` v0.2.8 | 21 of 24 scenarios pass; 3 known findings |
+| `cbsigma` v0.2.0 | 24 of 24 scenarios pass |
 
 The suite asserts the OpenADR 3.1.0 OpenAPI document, so it runs against the
 servers of 3.1.0 only (`SERVER_ADAPTERS`, which leaves out `openleadr301`).
@@ -275,6 +290,44 @@ cannot make one, though the specification gives both the scope.
 **What the library offers each role follows the scopes of the
 specification.** There is no way to ask it to create a program as a VEN, so
 a consumer cannot use this client to test that its VTN refuses that.
+
+### cB-Sigma openadr v0.2.0
+
+Read off the running VTN and from its source at the pinned commit
+(`oadr3/vtn/objects.go`, `view`).
+
+**A VEN cannot read a targeted program or event by ID** (a bug, reported
+as [cB-Sigma/openadr#1](https://github.com/cB-Sigma/openadr/issues/1),
+tracked here in [#19](https://github.com/otfabric/openadr-interop/issues/19);
+cases `get-program.ven-1.id-program-group-a-flex` and its `.unlock`
+counterpart). `ven-1`, granted `group-a`, asks `GET /programs/{id}` of
+`group-a-flex`, which carries `group-a`: the VTN answers 404, to all three
+clients. For a VEN a targeted object is visible only when the request's
+query names a target it was granted, and `GET /programs/{programID}` defines
+no query parameter: the VTN reads `?targets=` there too, which no client of
+the specification sends. A VEN can still find the program with a search that
+names the target. Feature `serverTargetsUnlock`.
+
+**Targets in a VEN's search do not narrow it** (a reading). `list-programs
+--targets group-a` as `ven-1` returns `day-ahead`, which has no targets, and
+`group-a-flex`; as `ven-2`, which was not granted `group-a`, `day-ahead`.
+Events likewise. The other VTNs return only objects that carry a named
+target. The OpenAPI document says of the parameter only "Indicates targets";
+the Definition asks that reads of targeted objects name their targets, which
+this VTN reads as: targets unlock, untargeted objects are for everyone.
+Business Logic's searches are narrowed. Feature `serverTargetsUnlock`.
+
+**A webhook must answer the echo check, and with 200.** The VTN asks
+`GET <callbackUrl>?echo=<value>` before it accepts a subscription and
+refuses it (400) when the callback does not answer 200 with the value in the
+body, as go-openadr's VTN does. A test that subscribes with a callback
+nobody serves is refused, and a case of `tests/cases.tsv` does not create a
+subscription for that reason.
+
+**The library is generic JSON.** Its client keeps objects as JSON maps and
+checks a request body (`oadr3.CheckRequest`) before it sends it, so an
+`invalid-request` of `cbsigma` is the library's check, and `response` is the
+answer as JSON, with nothing dropped or defaulted.
 
 ## Platforms
 

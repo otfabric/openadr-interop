@@ -134,6 +134,10 @@ func TestUsageErrors(t *testing.T) {
 		{"client", "list-programs", "--url", "http://x", "--as", "bl", "--fixture", fx, "--targets", "a,,b"},
 		{"client", "list-programs", "--url", "http://x", "--as", "bl", "--fixture", fx, "--timeout-ms", "0"},
 		{"client", "listen-mqtt", "--url", "http://x", "--as", "bl", "--fixture", fx, "--scope", "programs"},
+		{"client", "listen-webhook", "--url", "http://x", "--as", "bl", "--fixture", fx},
+		{"client", "listen-webhook", "--url", "http://x", "--anonymous", "ven", "--callback-url", "http://x/n"},
+		{"client", "listen-webhook", "--url", "http://x", "--as", "bl", "--fixture", fx, "--callback-url", "http://x/n", "--objects", "EVENT,BOGUS"},
+		{"client", "listen-webhook", "--url", "http://x", "--as", "bl", "--fixture", fx, "--callback-url", "http://x/n", "--messages", "0"},
 		{"print-fixture", "a", "b"},
 		{"version", "x"},
 	}
@@ -153,6 +157,8 @@ func TestCapabilitiesAreConsistent(t *testing.T) {
 			switch {
 			case strings.HasPrefix(op, "get-topics"):
 				args = append(args, "--scope", "programs")
+			case op == "listen-webhook":
+				args = append(args, "--callback-url", "http://x:8090/notify")
 			case strings.HasPrefix(op, "get-") && op != "get-notifiers", strings.HasPrefix(op, "delete-"):
 				args = append(args, "--id", "abc")
 			case strings.HasPrefix(op, "create-"):
@@ -351,3 +357,82 @@ func idOf(t *testing.T, d resultDocument) string {
 }
 
 func mustJSON(v any) []byte { b, _ := json.Marshal(v); return b }
+
+func TestListenWebhook(t *testing.T) {
+	url, f := vtnForTest(t, "baseline")
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := itoa(l.Addr().(*net.TCPAddr).Port)
+	_ = l.Close()
+	d, _ := do(t, url, f, "list-programs", "--as", "bl")
+	var programs []struct{ ID, ProgramName string }
+	_ = json.Unmarshal(mustJSON(d.Response), &programs)
+	program := ""
+	for _, p := range programs {
+		if p.ProgramName == "day-ahead" {
+			program = p.ID
+		}
+	}
+
+	type result struct {
+		d    resultDocument
+		code int
+	}
+	done := make(chan result, 1)
+	go func() {
+		r, err := parseClient([]string{"listen-webhook", "--url", url, "--as", "ven-1", "--fixture", fixturePath(t, "baseline"),
+			"--listen-port", port, "--callback-url", "http://127.0.0.1:" + port + "/notify", "--program-id", program,
+			"--listen-ms", "10000"})
+		if err != nil {
+			t.Error(err)
+			done <- result{}
+			return
+		}
+		d, code := execute(r)
+		done <- result{d, code}
+	}()
+	// The subscription is in place once the VTN lists it.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		if d, _ := do(t, url, f, "list-subscriptions", "--as", "ven-1"); count(d) == 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("no subscription")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if d, _ := do(t, url, f, "create-event", "--as", "bl", "--body", `{"programID":"`+program+`","eventName":"hook"}`); !d.OK {
+		t.Fatalf("create-event: %+v", d.Error)
+	}
+	got := <-done
+	if got.code != 0 || !got.d.OK {
+		t.Fatalf("listen-webhook: exit %d, %+v", got.code, got.d.Error)
+	}
+	b := string(mustJSON(got.d.Response))
+	for _, want := range []string{`"objectType":"EVENT"`, `"operation":"CREATE"`, `"eventName":"hook"`} {
+		if !strings.Contains(b, want) {
+			t.Errorf("no %s in %s", want, b)
+		}
+	}
+	if d, _ := do(t, url, f, "list-subscriptions", "--as", "ven-1"); count(d) != 0 {
+		t.Error("the subscription was not deleted")
+	}
+
+	// Nothing happens: too few notifications is a timeout.
+	r, err := parseClient([]string{"listen-webhook", "--url", url, "--as", "ven-1", "--fixture", fixturePath(t, "baseline"),
+		"--listen-port", port, "--callback-url", "http://127.0.0.1:" + port + "/notify", "--listen-ms", "200"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d, code := execute(r); code != 1 || d.Error == nil || d.Error.Code != "timeout" {
+		t.Errorf("no notification: exit %d, %+v", code, d.Error)
+	}
+	// A callback that does not answer the echo check is refused by the VTN.
+	r.webhook.callbackURL = "http://127.0.0.1:1/notify"
+	if d, code := execute(r); code != 1 || d.Error == nil || d.Error.Code != "http-error" || *d.Status != 400 {
+		t.Errorf("unreachable callback: exit %d, %+v", code, d.Error)
+	}
+}

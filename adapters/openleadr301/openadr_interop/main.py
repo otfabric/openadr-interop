@@ -86,6 +86,8 @@ def capabilities() -> dict:
             # A VEN is shown the programs and events that target it, whether
             # or not its search names the target.
             "serverTargetsMustBeNamed": False,
+            # Targets in a VEN's search narrow it (contract 1.5).
+            "serverTargetsUnlock": False,
             # No broker, no announcement, no notifiers: v0.1.4 has none of
             # them.
             "serverMqtt": False,
