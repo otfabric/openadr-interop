@@ -55,7 +55,8 @@ func operationsOf(role string) []string {
 			}
 		}
 	}
-	return append(ops, "get-notifiers", "get-topics")
+	// listen-webhook writes a subscription, which both clients may.
+	return append(ops, "get-notifiers", "get-topics", "listen-webhook")
 }
 
 // The search filters of each kind of object, besides --skip and --limit.
@@ -100,6 +101,7 @@ type clientRequest struct {
 	targets               []string
 	page                  client.Page
 	scope                 string
+	webhook               *webhookRequest
 }
 
 func parseClient(args []string) (*clientRequest, error) {
@@ -115,6 +117,9 @@ func parseClient(args []string) (*clientRequest, error) {
 	case "get-topics":
 		notifier = true
 		known = append(known, "scope", "id")
+	case "listen-webhook":
+		notifier = true
+		known = append(known, webhookFlags...)
 	default:
 		verb, kind, ok := strings.Cut(r.operation, "-")
 		if verb == "list" {
@@ -143,6 +148,9 @@ func parseClient(args []string) (*clientRequest, error) {
 	if notifier {
 		if r.operation == "get-topics" {
 			required = append(required, "scope")
+		}
+		if r.operation == "listen-webhook" {
+			required = append(required, "callback-url")
 		}
 	} else {
 		for _, f := range []string{"id", "body"} {
@@ -229,6 +237,15 @@ func parseClient(args []string) (*clientRequest, error) {
 			if r.page.Limit, err = number("limit", valueOr(given, "limit", "50"), 0, 1<<31-1); err != nil {
 				return nil, err
 			}
+		}
+	}
+
+	if r.operation == "listen-webhook" {
+		if anonymous {
+			return nil, usagef("listen-webhook needs a client of the fixture: --as")
+		}
+		if r.webhook, err = parseWebhook(given); err != nil {
+			return nil, err
 		}
 	}
 
@@ -349,7 +366,11 @@ func execute(r *clientRequest) (resultDocument, int) {
 		Client: r.who.Name, Role: r.who.Role,
 	}
 	started := time.Now()
-	response, err := call(r, &http.Client{Transport: rec, Timeout: r.timeout})
+	run := call
+	if r.webhook != nil {
+		run = listenWebhook
+	}
+	response, err := run(r, &http.Client{Transport: rec, Timeout: r.timeout})
 	doc.ElapsedMs = time.Since(started).Milliseconds()
 	rec.mu.Lock()
 	defer rec.mu.Unlock()

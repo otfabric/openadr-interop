@@ -42,11 +42,15 @@ OpenADR Alliance certification.
 
 ## R2 - Reference implementations
 
-- R2.1 In scope, in this order of priority: the OpenLEADR VTN (Rust) and the
-  ElaadNL openadr3-client (Python). Further candidates are named in PLAN.md.
+- R2.1 In scope, in this order of priority: the OpenLEADR VTN (Rust), the
+  ElaadNL openadr3-client (Python) and cB-Sigma openadr (Go, VTN and
+  client). Further candidates are named in PLAN.md.
 - R2.2 An adapter wraps the upstream implementation and adds nothing to the
   protocol: a client hands requests to the library's own models and client,
-  a server is the upstream VTN.
+  a server is the upstream VTN. The one exception is the webhook receiver of
+  `listen-webhook` for a library that has none (`cbsigma`): it answers the
+  echo check and the bearer token as the specification asks and nothing
+  more, and docs/CAPABILITIES.md says so.
 - R2.3 An adapter has the roles its upstream has. There must be at least one
   independent server and one independent client.
 - R2.4 OpenADR 3.1.0 first. A second revision is added as a capability of

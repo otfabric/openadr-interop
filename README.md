@@ -1,21 +1,23 @@
 # openadr-interop — OpenADR 3 Interoperability Testing with Docker
 
 A Docker-based interoperability testing framework for OpenADR 3, providing independent VTN and VEN/Business Logic implementations, deterministic fixtures, and automated protocol compatibility testing.
-Test OpenADR 3 libraries against established implementations including the OpenLEADR VTN and the ElaadNL client. Reference implementations are independently containerized, enabling reproducible testing across platforms without integrating third-party protocol stacks into production applications.
+Test OpenADR 3 libraries against established implementations including the OpenLEADR VTN, the ElaadNL client and the cB-Sigma VTN and client. Reference implementations are independently containerized, enabling reproducible testing across platforms without integrating third-party protocol stacks into production applications.
 
 | Adapter | Implementation | Language | Server (VTN) | Client (VEN, BL) | Image |
 |---------|----------------|----------|:------:|:------:|-------|
 | `openleadr` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) v0.2.8 | Rust | yes | no | `ghcr.io/otfabric/openadr-interop-openleadr` |
 | `elaadnl` | [ElaadNL openadr3-client](https://github.com/ElaadNL/openadr3-client) 2.4.0 | Python | no | yes | `ghcr.io/otfabric/openadr-interop-elaadnl` |
 | `openleadr301` | [OpenLEADR openleadr-rs](https://github.com/OpenLEADR/openleadr-rs) v0.1.4, OpenADR **3.0.1** | Rust | yes | no | `ghcr.io/otfabric/openadr-interop-openleadr301` |
+| `cbsigma` | [cB-Sigma openadr](https://github.com/cB-Sigma/openadr) v0.2.0 | Go | yes | yes | `ghcr.io/otfabric/openadr-interop-cbsigma` |
 
 OpenADR 3.1.0: programs, events, reports, VENs and resources, with OAuth2
-client credentials. The reference VTN also has MQTT notifications, resource
-groups and DNS-SD discovery; the reference client also has subscriptions,
+client credentials. OpenLEADR's VTN also has MQTT notifications, resource
+groups and DNS-SD discovery; the ElaadNL client also has subscriptions,
 notifiers, MQTT topics and an MQTT listener, resource groups and access
-without a token. Neither receives webhooks. The stacks do not all do the
-same, and each image says what it supports (`print-capabilities`); see
-[docs/CAPABILITIES.md](docs/CAPABILITIES.md).
+without a token. cB-Sigma's stack is a VTN with webhooks and a client of
+both roles that subscribes and receives them (`listen-webhook`). The stacks
+do not all do the same, and each image says what it supports
+(`print-capabilities`); see [docs/CAPABILITIES.md](docs/CAPABILITIES.md).
 
 OpenADR 3.0.1: `openleadr301` is a VTN of the earlier revision, OpenLEADR's
 last release of OpenADR 3.0, with the `baseline-301` fixture: tokens from
@@ -24,9 +26,9 @@ has no notifications. No reference client speaks 3.0.1 yet, so it is checked
 by `make smoke` and not paired in `make interop`; the conformance suite is
 of 3.1.0 only.
 
-**Status: v0.7.0**, container contract 1.4, for linux/amd64 and linux/arm64.
+**Status: v0.8.0**, container contract 1.5, for linux/amd64 and linux/arm64.
 The digests of its images are in the `manifest.json` of the
-[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.7.0).
+[release](https://github.com/otfabric/openadr-interop/releases/tag/v0.8.0).
 See [PLAN.md](PLAN.md) and [RELEASE.md](RELEASE.md).
 
 **Docs:** [docs/CONTAINER_CONTRACT.md](docs/CONTAINER_CONTRACT.md) (commands, JSON documents, exit codes) · [docs/FIXTURES.md](docs/FIXTURES.md) (what a reference VTN holds) · [docs/CAPABILITIES.md](docs/CAPABILITIES.md) · [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) (pins, cross-stack matrix, findings) · [conformance/](conformance/README.md) (the specification-driven test suite) · [REQUIREMENTS.md](REQUIREMENTS.md) · [PLAN.md](PLAN.md) · [RELEASE.md](RELEASE.md)

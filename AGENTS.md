@@ -2,7 +2,7 @@
 
 ## What this is
 
-Independent OpenADR 3 VTN and VEN/Business Logic implementations (OpenLEADR openleadr-rs, ElaadNL openadr3-client) in containers behind one command-line contract, with deterministic fixtures, used as oracles by go-openadr and openadrctl. Nothing here depends on go-openadr, except `own/`, the one image of OT Fabric's own stack (`own/go-openadr/README.md`). Profile: **interoperability**.
+Independent OpenADR 3 VTN and VEN/Business Logic implementations (OpenLEADR openleadr-rs, ElaadNL openadr3-client, cB-Sigma openadr) in containers behind one command-line contract, with deterministic fixtures, used as oracles by go-openadr and openadrctl. Nothing here depends on go-openadr, except `own/`, the one image of OT Fabric's own stack (`own/go-openadr/README.md`). Profile: **interoperability**.
 
 ## Organisation standards
 

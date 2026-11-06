@@ -1,10 +1,10 @@
 # Machine-readable version manifest for openadr-interop.
 # Upstream pins and base image digests are release inputs; nothing floats.
-# The Dockerfiles are the source of truth for a build:
+# The Dockerfiles (and adapters/cbsigma/go.mod) are the source of truth for a build:
 # scripts/check-versions.sh fails when this file disagrees with them.
 
-interop_version: "0.7.0"
-contract_version: "1.4"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
+interop_version: "0.8.0"
+contract_version: "1.5"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
 fixture_schema: "1.1"          # fixtures/schema/openadr-fixture.schema.json
 
 protocol:
@@ -82,6 +82,28 @@ implementations:
     note: >-
       Tracks v0.1.x only (scripts/latest-upstream.py). Not in the conformance
       suite, which is of 3.1.0.
+
+  cbsigma:
+    priority: P1
+    status: implemented
+    upstream: "cB-Sigma openadr"
+    repository: "https://github.com/cB-Sigma/openadr"
+    module: "github.com/cB-Sigma/openadr"
+    version: "v0.2.0"            # latest release; tags only
+    revision: "ed8241708939c35b201acf1fd1e768b2d551107f"   # the commit of tag v0.2.0
+    license: "Apache-2.0"
+    language: "Go"
+    independent_engine: true
+    openadr_versions: ["3.1.0"]
+    roles: [server, client]
+    lock: adapters/cbsigma/go.mod   # with go.sum; the module has no dependency the adapter links
+    base_images:
+      golang: "golang:1.27.2-trixie@sha256:47667934874913a449b96faa7ef4777fa285d9ec29126ee80ed61c45b7cccf0e"
+      debian: "debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2"
+    note: >-
+      The VTN is oadr3/vtn, the clients oadr3.APIClient. Not wired: the VTN's
+      MQTT notifier (it needs a broker client the application supplies),
+      mDNS (oadr3/mdns) and OpenADR 3.0 (vtn.Version30).
 
 # OT Fabric's own stacks. Not independent implementations, not in a release of
 # this repository or its manifest.json: see own/<library>/README.md.

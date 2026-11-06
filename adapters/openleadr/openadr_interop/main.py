@@ -85,6 +85,9 @@ def capabilities() -> dict:
             # A VEN is shown the programs and events that carry a target it
             # was granted, whether or not its search names the target.
             "serverTargetsMustBeNamed": False,
+            # Targets in a VEN's search narrow it: objects without targets
+            # are left out (contract 1.5).
+            "serverTargetsUnlock": False,
             # The image runs an MQTT broker next to the VTN, and the VTN
             # publishes its notifications there.
             "serverMqtt": True,

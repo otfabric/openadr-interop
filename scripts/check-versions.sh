@@ -42,6 +42,15 @@ for dockerfile in adapters/*/Dockerfile; do
         status=1
     fi
 done
+# cbsigma: the Dockerfile and go.mod name the same cB-Sigma openadr version.
+gomod_cbsigma=$(sed -nE 's|^[[:space:]]*(require[[:space:]]+)?github.com/cB-Sigma/openadr (v[^ ]+).*$|\2|p' adapters/cbsigma/go.mod)
+dockerfile_cbsigma=$(sed -nE 's/^ARG UPSTREAM_VERSION=(.+)$/\1/p' adapters/cbsigma/Dockerfile | head -1)
+if [[ -n "${gomod_cbsigma}" && "${gomod_cbsigma}" == "${dockerfile_cbsigma}" ]]; then
+    echo "ok   cB-Sigma openadr in Dockerfile and go.mod: ${gomod_cbsigma}"
+else
+    echo "FAIL cB-Sigma openadr in Dockerfile and go.mod: ${dockerfile_cbsigma:-none} and ${gomod_cbsigma:-none}"
+    status=1
+fi
 # The conformance suite reports the version of this repository.
 suite=$(sed -nE 's/^const version = "([^"]+)"$/\1/p' conformance/cmd/openadr-interop/main.go)
 need "conformance suite version" "interop_version: \"${suite}\""

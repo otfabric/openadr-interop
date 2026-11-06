@@ -23,9 +23,9 @@ Edit, then `make image-<adapter> smoke-<adapter> interop`. Every adapter has the
 
 ## Moving an upstream pin
 
-1. Try it without changing anything: `make candidate-<adapter> CANDIDATE_VERSION=<version>` (and `CANDIDATE_SHA=<commit>` for `openleadr` and `openleadr301`).
+1. Try it without changing anything: `make candidate-<adapter> CANDIDATE_VERSION=<version>` (and `CANDIDATE_SHA=<commit>` for `openleadr`, `openleadr301` and `cbsigma`).
 2. A case that fails because of an upstream bug goes into `tests/known-bugs.tsv` or `conformance/known/<adapter>.tsv` for that version, and into docs/COMPATIBILITY.md. A capability that changed goes into the adapter's `print-capabilities`.
-3. Move the pin in the Dockerfile (`ARG UPSTREAM_VERSION`, `ARG UPSTREAM_SHA`) and in `versions.yaml`; for `elaadnl`, regenerate `requirements.txt` as its header says. `make validate` checks that the two agree.
+3. Move the pin in the Dockerfile (`ARG UPSTREAM_VERSION`, `ARG UPSTREAM_SHA`) and in `versions.yaml`; for `elaadnl`, regenerate `requirements.txt` as its header says. For `cbsigma`, `go get github.com/cB-Sigma/openadr@<version>` and `go mod tidy` in `adapters/cbsigma`: its `go.mod` and `go.sum` are the source of truth, and `scripts/check-versions.sh` fails when the Dockerfile names another version. `make validate` checks that the two agree.
 4. Remove the entries the new version no longer needs: a known bug that does not show fails the run.
 
 ## Registries and retries

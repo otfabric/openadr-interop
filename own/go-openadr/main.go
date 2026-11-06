@@ -222,6 +222,12 @@ func capabilities() map[string]any {
 			// The MQTT subscriber hands over decoded notifications, not the
 			// payload the contract asks for; no self-test covers it.
 			"clientMqtt": false,
+			// listen-webhook (contract 1.5): webhook.Handler receives, the
+			// client writes the subscription.
+			"clientWebhook": true,
+			// Targets in a VEN's search narrow it, and a targeted object it
+			// was granted is read by ID without naming them (contract 1.5).
+			"serverTargetsUnlock": false,
 			// Subscriptions name CREATE, READ, UPDATE and DELETE.
 			"clientSubscriptionOperations310": true,
 			// Notifiers.MQTT is nil for a VTN without a broker.
