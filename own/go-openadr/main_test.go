@@ -408,7 +408,7 @@ func TestListenWebhook(t *testing.T) {
 		t.Fatalf("create-event: %+v", d.Error)
 	}
 	got := <-done
-	if got.code != 0 || !got.d.OK {
+	if got.code != 0 || !got.d.OK || got.d.Status == nil || *got.d.Status != 201 {
 		t.Fatalf("listen-webhook: exit %d, %+v", got.code, got.d.Error)
 	}
 	b := string(mustJSON(got.d.Response))

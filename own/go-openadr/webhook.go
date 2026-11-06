@@ -154,7 +154,24 @@ func listenWebhook(r *clientRequest, hc *http.Client) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _, _ = c.DeleteSubscription(context.Background(), created.ID) }()
+	// The subscription is deleted by a client of its own, outside the
+	// recorder: status is the VTN's answer to POST /subscriptions.
+	cleanup := cfg
+	cleanup.HTTPClient = &http.Client{Timeout: hc.Timeout}
+	defer func() {
+		var d interface {
+			DeleteSubscription(context.Context, string) (openadr.Subscription, error)
+		}
+		var err error
+		if r.who.Role == "bl" {
+			d, err = client.NewBL(cleanup)
+		} else {
+			d, err = client.NewVEN(cleanup)
+		}
+		if err == nil {
+			_, _ = d.DeleteSubscription(context.Background(), created.ID)
+		}
+	}()
 	b, _ := json.Marshal(map[string]any{"event": "subscribed", "subscription": created.ID, "callbackUrl": w.callbackURL})
 	fmt.Fprintln(os.Stderr, string(b))
 
