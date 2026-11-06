@@ -163,7 +163,8 @@
               "delete-resource-group",
               "get-notifiers",
               "get-topics",
-              "listen-mqtt"
+              "listen-mqtt",
+              "listen-webhook"
             ]
           }
         },
@@ -208,7 +209,8 @@
               "delete-resource-group",
               "get-notifiers",
               "get-topics",
-              "listen-mqtt"
+              "listen-mqtt",
+              "listen-webhook"
             ]
           }
         }
