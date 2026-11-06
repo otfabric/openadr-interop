@@ -31,20 +31,6 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 ---
 
-## v0.8.1
-
-**Date:** 2026-11-06
-**Previous release:** v0.8.0
-
-### Changed
-
-- **`elaadnl`** moves to ElaadNL openadr3-client 2.4.2 (tag `134ff74e`), the latest release. Between 2.4.0 and 2.4.2 the package `openadr3_client` is unchanged. Its dependencies moved: oauthlib 3.3.1 to 4.0.1 (the library now requires 4), paho-mqtt 2.2.0, pydantic 2.14.3, certifi 2026.10.23, and the transitive security updates of 2.4.1. `requirements.txt` was regenerated with its hashes. The set of packages, and so `THIRD_PARTY_NOTICES.md`, is the same apart from the version.
-- The cross-stack self-test gives the same result as with 2.4.0: `elaadnl` against `openleadr` and `cbsigma`, 279 checks pass and 0 fail.
-
-The container contract and the fixtures do not change.
-
----
-
 ## v0.8.0
 
 **Date:** 2026-11-06
@@ -60,6 +46,7 @@ The container contract and the fixtures do not change.
 ### Changed
 
 - The workflow check of the event's start time accepts `+00:00` as well as `Z`: OpenLEADR writes the former, and a client that hands over the VTN's JSON as it is (`cbsigma`) passes it on.
+- **`elaadnl`** moves to ElaadNL openadr3-client 2.4.2 (tag `134ff74e`), the latest release. Between 2.4.0 and 2.4.2 the package `openadr3_client` is unchanged. Its dependencies moved: oauthlib 3.3.1 to 4.0.1 (the library now requires 4), paho-mqtt 2.2.0, pydantic 2.14.3, certifi 2026.10.23, and the transitive security updates of 2.4.1. `requirements.txt` was regenerated with its hashes. The set of packages is the same, and the cross-stack results are those of 2.4.0.
 - `needs` in `tests/cases.tsv` takes `server:!<feature>` and `client:!<feature>`: the case runs only where the feature is not declared.
 - The Own stack workflow runs the cross-stack self-test against the adapters of the harness release's Makefile, so a release that adds an adapter adds it there too.
 
