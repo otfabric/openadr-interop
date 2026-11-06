@@ -6,7 +6,8 @@
 
 The work directory of a run holds results.log (one tab-separated line per
 result: id, outcome, roles as "role=name" words, milliseconds, reason, known
-bug), implementations.tsv (name, version, image), active (the known bugs that
+bug), implementations.tsv (name, version, image, and the upstream object of the
+image's capability document), active (the known bugs that
 apply to the versions under test) and reproduced (those that showed).
 
 The exit status is 1 when the run failed: a fail or infra-error, a known bug
@@ -79,9 +80,14 @@ def parse_result(line, waivers):
 def implementations(rows, versions, digest=interop_result.repo_digest):
     out = []
     for row in rows:
-        name, version, image = row.split("\t")
-        i = {"name": name, "version": version, "independent": True}
-        i.update(versions.get(name, {}))
+        name, version, image, upstream = row.split("\t")
+        # What the image says of itself; an image outside versions.yaml has only that.
+        seen = json.loads(upstream) if upstream else {}
+        i = {"name": name, "version": version, "independent": seen.get("independentEngine", True)}
+        pin = versions.get(name) or {k: seen[k] for k in ("revision", "license") if seen.get(k)}
+        if name not in versions and seen.get("name"):
+            i["upstream"] = seen["name"]
+        i.update(pin)
         pinned = digest(image)
         if pinned:
             i["image"] = pinned

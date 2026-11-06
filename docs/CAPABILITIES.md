@@ -16,7 +16,7 @@ Schema: [schemas/capabilities.schema.json](../schemas/capabilities.schema.json).
 | `adapterVersion` | Version of this repository the image was built from |
 | `protocol` | `"openadr3"` |
 | `openadrVersions` | Revisions the adapter speaks, of `3.1.0` and `3.0.1` (contract 1.4). A client and a server are paired only when they share one |
-| `upstream` | `name`, `version`, `revision`, `license`, `language` of the wrapped implementation; `independentEngine`: it shares no protocol code with another adapter |
+| `upstream` | `name`, `version`, `revision`, `license`, `language` of the wrapped implementation; `independentEngine`: it shares no protocol code with another adapter, and is not OT Fabric's own stack (`own/`). Results from an adapter where it is `false` do not count as an additional independent implementation |
 | `roles` | `server`, `client`: booleans |
 | `features` | See below; every feature is present in every document |
 | `serverObjects` | Object types the server serves, of `programs`, `events`, `reports`, `vens`, `resources` |

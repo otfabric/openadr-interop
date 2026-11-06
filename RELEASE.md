@@ -16,6 +16,9 @@ one section per version, newest first, each ending with a `---` line, and no
 
 Tags are immutable. A fix is a new version.
 
+The `openadr-interop-otfabric` image is not part of these releases. It has its own
+manual workflow and no releases (`own/go-openadr/README.md`).
+
 | What changed | Version |
 |--------------|---------|
 | Contract or fixture format changed incompatibly | major |
@@ -25,6 +28,29 @@ Tags are immutable. A fix is a new version.
 ## Upstream releases
 
 The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on demand. For each adapter it looks up the latest stable upstream release (`scripts/latest-upstream.py`: the git tags of OpenLEADR, of v0.1.x only for `openleadr301`, PyPI for the ElaadNL client). Where the pin is behind, it builds a candidate image on that release and runs the smoke test, the cross-stack self-test against the other stacks at their pins and, for a server, the conformance suite (once per pin and release; later runs reuse that result). It also checks the digest of every pinned base image. The result is a pin-versus-latest table in the job summary and the tracking issue "Upstream releases: pins behind the latest", which is closed once every pin is the latest release again. The pins themselves are never changed by a workflow: [CONTRIBUTING.md](CONTRIBUTING.md#moving-an-upstream-pin) says how to move one.
+
+---
+
+## v0.7.0
+
+**Date:** 2026-11-06
+**Previous release:** v0.6.3
+
+### Added
+
+- **`own/go-openadr/`** and the manual workflow **Own stack (go-openadr)**: go-openadr, OT Fabric's own stack, behind the container contract as a VTN and as its Business Logic and VEN clients, published as `ghcr.io/otfabric/openadr-interop-otfabric:<go-openadr version>` and `:latest` for others to test against. It is not an independent implementation (`upstream.independentEngine: false`) and not part of this or any release: `manifest.json` does not list it.
+- **`ADAPTER_IMAGE_<adapter>`**: `scripts/smoke.sh`, `scripts/interop.sh` and `scripts/conformance.sh` take an image from outside the release set.
+
+### Changed
+
+- `results.json` takes `independent`, and for an image outside `versions.yaml` its revision, licence and upstream name, from what the image says of itself.
+- The R1 check of CI also names `openadrctl`.
+
+### Fixed
+
+- `scripts/interop.sh` with more than one client adapter: a case that starts its own server read the object IDs of the previous server of the same name, so every client after the first was sent IDs that its server did not have (404, 409). The release set has one client and did not show it.
+
+The reference adapters, the container contract and the fixtures do not change.
 
 ---
 
