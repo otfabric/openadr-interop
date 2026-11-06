@@ -281,7 +281,8 @@ something; it is not part of the result.
 It succeeds when it has received `--messages` notifications, and then
 `response` is `{ "subscription", "callbackUrl", "messages" }`: the
 subscription as the VTN created it, and each notification as the client read
-it (`objectType`, `operation`, `object`). A VTN that refuses the subscription,
+it (`objectType`, `operation`, `object`). `status` is the VTN's answer to
+`POST /subscriptions`. A VTN that refuses the subscription,
 for instance because the callback did not answer its check, is `http-error`;
 too few notifications in time is `timeout`.
 
