@@ -100,6 +100,13 @@ the server feature `serverTargetsUnlock`, the reading of targets of the
 `cbsigma` VTN. `elaadnl` moves to ElaadNL openadr3-client 2.4.2. The
 fixtures do not change.
 
+## v0.8.1 (released)
+
+The README describes the `cbsigma` VTN and client and `listen-webhook`; the
+contract says that the `status` of `listen-webhook` is the VTN's answer to
+`POST /subscriptions`. The reference adapters, the container contract version
+and the fixtures do not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:
