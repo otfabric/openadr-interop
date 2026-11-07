@@ -31,6 +31,23 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 ---
 
+## v0.8.1
+
+**Date:** 2026-11-07
+**Previous release:** v0.8.0
+
+### Fixed
+
+- **Contract 1.5, `listen-webhook`:** docs/CONTAINER_CONTRACT.md now says that `status` is the VTN's answer to `POST /subscriptions`. `own/go-openadr` reported the 200 of the `DELETE` that removes the subscription at the end; it now reports the 201 of the creation, as `cbsigma` does, and the tests of both adapters check it ([#24](https://github.com/otfabric/openadr-interop/pull/24)). The `openadr-interop-otfabric` image, outside the releases, is rebuilt with the fix.
+
+### Changed
+
+- README.md describes the `cbsigma` VTN and client and the webhook scenario (`listen-webhook`) ([#23](https://github.com/otfabric/openadr-interop/pull/23)).
+
+The reference adapters, the contract version (1.5) and the fixtures do not change.
+
+---
+
 ## v0.8.0
 
 **Date:** 2026-11-06
