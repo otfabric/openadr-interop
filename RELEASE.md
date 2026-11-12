@@ -31,6 +31,23 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 ---
 
+## v0.8.2
+
+**Date:** 2026-11-13
+**Previous release:** v0.8.1
+
+### Changed
+
+- **`cbsigma`** moves to cB-Sigma openadr v0.2.1 (tag commit `cc2be893`), the latest release. It fixes the bug this repository reported, [cB-Sigma/openadr#1](https://github.com/cB-Sigma/openadr/issues/1) ([#19](https://github.com/otfabric/openadr-interop/issues/19)): a VEN now reads a program or event targeted at it by ID (`GET /programs/{id}`, `GET /events/{id}`) without a `targets` parameter, and one targeted elsewhere is still not found. The case `get-program.ven-1.id-program-group-a-flex` now runs against every server, and its `.unlock` counterpart, which expected the 404, is removed. The adapter's own test checks both answers. `cbsigma` still declares `serverTargetsUnlock`: v0.2.1 does not change how its searches read targets.
+- `serverTargetsUnlock` in docs/CAPABILITIES.md no longer includes the 404 on a read by ID. That was the v0.2.0 bug, not part of the reading of targets. No adapter other than `cbsigma` declares the feature, and the contract version stays 1.5.
+- Base images: `alpine:3.22` (`openleadr`, `openleadr301`) moves to `sha256:49340b346798…` and `python:3.14.8-slim-trixie` (`elaadnl`) to `sha256:fbecd461fc72…`, the digests the tags point at now.
+
+Verified with `make ci` on linux/arm64 (macOS): the cross-stack self-test passes 279 checks, 0 fail, 59 skipped on declared capabilities (one fewer per pairing than v0.8.1, for the removed `.unlock` case); the conformance suite passes 24 of 24 on `cbsigma` and 21 of 24 with the 3 known findings on `openleadr`, as before.
+
+The other upstream pins (OpenLEADR v0.2.8 and v0.1.4, ElaadNL openadr3-client 2.4.2), the contract version (1.5) and the fixtures do not change.
+
+---
+
 ## v0.8.1
 
 **Date:** 2026-11-07
