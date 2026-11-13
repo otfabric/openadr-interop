@@ -37,7 +37,7 @@ ro	baseline	0	ok=true error=- status=200 n=0	-	list-programs --as bl --skip 2 --
 ro	baseline	1	ok=false error=http-error status=400 n=0	-	list-programs --as bl --skip 0 --limit 51	list-programs.bl.skip-0.limit-51
 ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as bl --id @program:group-a-flex@	get-program.bl.id-program-group-a-flex
 ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as ven-2 --id @program:day-ahead@	get-program.ven-2.id-program-day-ahead
-ro	baseline	0	ok=true error=- status=200 n=1	server:!serverTargetsUnlock	get-program --as ven-1 --id @program:group-a-flex@	get-program.ven-1.id-program-group-a-flex
+ro	baseline	0	ok=true error=- status=200 n=1	-	get-program --as ven-1 --id @program:group-a-flex@	get-program.ven-1.id-program-group-a-flex
 ro	baseline	1	ok=false error=http-error status=404 n=0	-	get-program --as bl --id no-such-program	get-program.bl.id-no-such-program
 ro	baseline	0	ok=true error=- status=200 n=2	-	list-events --as bl	list-events.bl
 ro	baseline	0	ok=true error=- status=200 n=1	-	list-events --as bl --program-id @program:day-ahead@	list-events.bl.program-id-program-day-ahead
@@ -93,13 +93,9 @@ ro	baseline	1	ok=false error=http-error status=404 n=0	server:serverResourceGrou
 rw	baseline	0	ok=true error=- status=201 n=1	server:serverResourceGroups	create-resource-group --as bl --body {"resourceGroupName":"street","targets":["group-a"]}	create-resource-group.bl.street
 ro	baseline	1	ok=false error=http-error status=401 n=0	-	list-programs --anonymous ven	list-programs.anonymous-ven
 # Contract 1.5: the reading of targets of a VTN with serverTargetsUnlock. A
-# VEN's search that names targets returns the objects without targets too,
-# and a targeted object it was granted is not found by ID: GET
-# /programs/{programID} defines no query parameter that could name the target.
-# https://github.com/cB-Sigma/openadr/issues/1
+# VEN's search that names targets returns the objects without targets too.
 ro	baseline	0	ok=true error=- status=200 n=2	server:serverTargetsUnlock	list-programs --as ven-1 --targets group-a	list-programs.ven-1.targets-group-a.unlock
 ro	baseline	0	ok=true error=- status=200 n=1	server:serverTargetsUnlock	list-programs --as ven-2 --targets group-a	list-programs.ven-2.targets-group-a.unlock
-ro	baseline	1	ok=false error=http-error status=404 n=0	server:serverTargetsUnlock	get-program --as ven-1 --id @program:group-a-flex@	get-program.ven-1.id-program-group-a-flex.unlock
 ro	baseline	0	ok=true error=- status=200 n=2	server:serverTargetsUnlock	list-events --as ven-1 --targets group-a	list-events.ven-1.targets-group-a.unlock
 ro	baseline	0	ok=true error=- status=200 n=1	server:serverTargetsUnlock	list-events --as ven-2 --targets group-a	list-events.ven-2.targets-group-a.unlock
 # GET /notifiers of a VTN without MQTT: WEBHOOK only.

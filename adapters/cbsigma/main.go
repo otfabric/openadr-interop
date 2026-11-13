@@ -203,9 +203,7 @@ func capabilities() map[string]any {
 			"serverTargetsMustBeNamed": true,
 			// For a VEN, the targets a request names unlock the targeted
 			// objects it was granted and narrow nothing: a search that names
-			// targets returns the objects without targets too, and a
-			// targeted object is read by ID only with its target in the
-			// query (contract 1.5).
+			// targets returns the objects without targets too (contract 1.5).
 			"serverTargetsUnlock": true,
 			// The MQTT notifier publishes through a broker client the
 			// application supplies (vtn.Publisher); the image has no broker.

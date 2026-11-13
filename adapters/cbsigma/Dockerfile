@@ -26,9 +26,9 @@ FROM ${BASE_REGISTRY}/golang:1.27.2-trixie@${GOLANG_DIGEST} AS build
 
 # The release pin. "make candidate-cbsigma CANDIDATE_VERSION=<version>"
 # overrides it to try another upstream version without touching the pin.
-ARG UPSTREAM_VERSION=v0.2.0
+ARG UPSTREAM_VERSION=v0.2.1
 # The commit of the release tag, for print-capabilities.
-ARG UPSTREAM_SHA=ed8241708939c35b201acf1fd1e768b2d551107f
+ARG UPSTREAM_SHA=cc2be89330fba4ba6add4ce026e925ce4e659c6b
 ARG ADAPTER_VERSION=dev
 
 ENV CGO_ENABLED=0 GOFLAGS=-mod=mod GOTOOLCHAIN=local

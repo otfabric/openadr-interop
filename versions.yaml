@@ -3,7 +3,7 @@
 # The Dockerfiles (and adapters/cbsigma/go.mod) are the source of truth for a build:
 # scripts/check-versions.sh fails when this file disagrees with them.
 
-interop_version: "0.8.1"
+interop_version: "0.8.2"
 contract_version: "1.5"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
 fixture_schema: "1.1"          # fixtures/schema/openadr-fixture.schema.json
 
@@ -39,7 +39,7 @@ implementations:
       mosquitto: "2.0 (Alpine 3.22 package mosquitto, EPL-2.0 OR BSD-3-Clause)"  # the MQTT broker the VTN publishes to
     base_images:
       rust: "rust:1.94-alpine@sha256:77237dd363a0b127bb5ef532c2d64c0deb380b738e43a9c4bdac73398d6d0a08"
-      alpine: "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8"
+      alpine: "alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f"
     note: >-
       OpenLEADR has a client library too (openleadr-client); the adapter does
       not wrap it yet, so the image has no client role.
@@ -59,7 +59,7 @@ implementations:
     roles: [client]
     lock: adapters/elaadnl/requirements.txt   # every dependency, with hashes
     base_images:
-      python: "python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170"
+      python: "python:3.14.8-slim-trixie@sha256:fbecd461fc72d21b2143c6eaba25143738079154a6d0ea3da3aec724f50eed4a"
 
   openleadr301:
     priority: P1
@@ -78,7 +78,7 @@ implementations:
       argon2: "Alpine 3.22 package argon2 (CC0-1.0 OR Apache-2.0)"              # hashes the fixture's client secrets
     base_images:
       rust: "rust:1.94-alpine@sha256:77237dd363a0b127bb5ef532c2d64c0deb380b738e43a9c4bdac73398d6d0a08"
-      alpine: "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8"
+      alpine: "alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f"
     note: >-
       Tracks v0.1.x only (scripts/latest-upstream.py). Not in the conformance
       suite, which is of 3.1.0.
@@ -89,8 +89,8 @@ implementations:
     upstream: "cB-Sigma openadr"
     repository: "https://github.com/cB-Sigma/openadr"
     module: "github.com/cB-Sigma/openadr"
-    version: "v0.2.0"            # latest release; tags only
-    revision: "ed8241708939c35b201acf1fd1e768b2d551107f"   # the commit of tag v0.2.0
+    version: "v0.2.1"            # latest release; tags only
+    revision: "cc2be89330fba4ba6add4ce026e925ce4e659c6b"   # the commit of tag v0.2.1
     license: "Apache-2.0"
     language: "Go"
     independent_engine: true

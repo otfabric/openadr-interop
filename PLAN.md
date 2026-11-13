@@ -107,6 +107,13 @@ contract says that the `status` of `listen-webhook` is the VTN's answer to
 `POST /subscriptions`. The reference adapters, the container contract version
 and the fixtures do not change.
 
+## v0.8.2 (released)
+
+`cbsigma` moves to cB-Sigma openadr v0.2.1, which fixes the read by ID of a
+targeted program or event by a VEN (cB-Sigma/openadr#1); the alpine and
+python base images move to their current digests. The container contract and
+the fixtures do not change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:

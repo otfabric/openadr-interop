@@ -55,7 +55,7 @@ Built by hand from `own/go-openadr/`, not part of a release (`own/go-openadr/REA
 
 | Component | Licence | In the image |
 |-----------|---------|--------------|
-| [cB-Sigma openadr](https://github.com/cB-Sigma/openadr) v0.2.0, the packages `oadr3` and `oadr3/vtn`, linked into the adapter | Apache-2.0 | `/licenses/openadr/` (LICENSE and NOTICE) |
+| [cB-Sigma openadr](https://github.com/cB-Sigma/openadr) v0.2.1, the packages `oadr3` and `oadr3/vtn`, linked into the adapter | Apache-2.0 | `/licenses/openadr/` (LICENSE and NOTICE) |
 | The Go standard library, Go 1.27.2 | BSD-3-Clause | `/licenses/go/LICENSE` |
 | Debian trixie-slim base image | Various | Debian's `/usr/share/doc/*/copyright` |
 | The adapter | MIT | `/licenses/openadr-interop/LICENSE` |

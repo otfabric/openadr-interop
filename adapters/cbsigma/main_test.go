@@ -271,8 +271,10 @@ func TestClientAgainstTheVTN(t *testing.T) {
 		{"list-programs", []string{"--as", "bl", "--skip", "1", "--limit", "50"}, want{0, true, "", 200, 1}},
 		{"list-programs", []string{"--as", "bl", "--skip", "0", "--limit", "51"}, want{1, false, "http-error", 400, 0}},
 		{"get-program", []string{"--as", "bl", "--id", "no-such-program"}, want{1, false, "http-error", 404, 0}},
-		// A read by ID names no target: a targeted program is not found.
-		{"get-program", []string{"--as", "ven-1", "--id", ids["group-a-flex"]}, want{1, false, "http-error", 404, 0}},
+		// A VEN reads a program targeted at it by ID (fixed in v0.2.1,
+		// cB-Sigma/openadr#1); one targeted elsewhere is not found.
+		{"get-program", []string{"--as", "ven-1", "--id", ids["group-a-flex"]}, want{0, true, "", 200, 1}},
+		{"get-program", []string{"--as", "ven-2", "--id", ids["group-a-flex"]}, want{1, false, "http-error", 404, 0}},
 		{"get-program", []string{"--as", "bl", "--id", ids["group-a-flex"]}, want{0, true, "", 200, 1}},
 		{"list-events", []string{"--as", "bl", "--program-id", ids["day-ahead"]}, want{0, true, "", 200, 1}},
 		{"list-vens", []string{"--as", "ven-1"}, want{0, true, "", 200, 1}},

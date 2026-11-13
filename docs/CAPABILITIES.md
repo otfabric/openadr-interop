@@ -44,7 +44,7 @@ Schema: [schemas/capabilities.schema.json](../schemas/capabilities.schema.json).
 | `clientNotifiersWithoutMqtt` | The client reads `GET /notifiers` of a VTN that has no MQTT broker |
 | `clientTopicsOfOneObject` | The client reads the topics of one program or ven, which have no `CREATE` topic |
 | `clientWebhook` | The client has `listen-webhook` (contract 1.5) |
-| `serverTargetsUnlock` | For a VEN, the targets a request names unlock the targeted objects it was granted and narrow nothing: a search that names targets returns the objects without targets too, and a targeted object is read by ID only with its target in the query (contract 1.5). Without it, targets in a VEN's search narrow it to the objects that carry one, and a VEN reads a targeted object it was granted by ID |
+| `serverTargetsUnlock` | For a VEN, the targets a request names unlock the targeted objects it was granted and narrow nothing: a search that names targets returns the objects without targets too (contract 1.5). Without it, targets in a VEN's search narrow it to the objects that carry one |
 
 A feature that is false is not necessarily a fault: `serverTargetsMustBeNamed`
 is a reading of text the specification leaves open. [COMPATIBILITY.md](COMPATIBILITY.md)
@@ -54,7 +54,7 @@ says which is which.
 
 | | `openleadr` | `elaadnl` | `openleadr301` | `cbsigma` |
 |---|:---:|:---:|:---:|:---:|
-| Upstream | OpenLEADR openleadr-rs v0.2.8 | ElaadNL openadr3-client 2.4.2 | OpenLEADR openleadr-rs v0.1.4 | cB-Sigma openadr v0.2.0 |
+| Upstream | OpenLEADR openleadr-rs v0.2.8 | ElaadNL openadr3-client 2.4.2 | OpenLEADR openleadr-rs v0.1.4 | cB-Sigma openadr v0.2.1 |
 | OpenADR | 3.1.0 | 3.1.0 | 3.0.1 | 3.1.0 |
 | Language | Rust | Python | Rust | Go |
 | Server role | yes | no | yes | yes |
