@@ -32,7 +32,7 @@ either reading of targets (`serverTargetsUnlock`) runs against the servers
 of that reading and is skipped against the others, so every server skips
 some.
 
-`cbsigma` against OT Fabric's own stack (`otfabric`, go-openadr v0.6.0 with
+`cbsigma` against OT Fabric's own stack (`otfabric`, go-openadr v0.7.2 with
 `listen-webhook`, not part of the release): 70 checks pass with either as
 the client, the webhook is notified both ways (the `cbsigma` VTN to
 go-openadr's `webhook.Handler`, go-openadr's `webhook.Sender` to the
