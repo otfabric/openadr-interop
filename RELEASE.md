@@ -31,6 +31,29 @@ The `Upstream` workflow (`.github/workflows/upstream.yml`) runs daily and on dem
 
 ---
 
+## v0.8.3
+
+**Date:** 2026-11-15
+**Previous release:** v0.8.2
+
+### Fixed
+
+- `versions.yaml` says `status: published` for `cbsigma`, whose image `ghcr.io/otfabric/openadr-interop-cbsigma` every release since v0.8.0 publishes, as it does for the other three adapters. SECURITY.md names cB-Sigma openadr among the bundled implementations whose security reports go upstream.
+
+### Changed
+
+- `scripts/check-versions.sh` (`make validate`, CI and the release workflow) also checks:
+  - the base-image digests of the own-stack Dockerfile (`own/*/Dockerfile`) against the entry of `own_implementations` in `versions.yaml` that is built from that directory, and that its `FROM` lines are pinned by digest;
+  - that the adapters in `ADAPTERS` of the Makefile, whose images a release publishes, are exactly the implementations with `status: published` in `versions.yaml`;
+  - that the `elaadnl` Dockerfile and `adapters/elaadnl/requirements.txt` pin the same openadr3-client version, and that the `wheel_sha256` of `versions.yaml` is one of the hashes requirements.txt allows for it.
+- `scripts/test_check_versions.py` (`make unittests`) runs the check on a copy of the repository, as it is and with each of these pins changed in one place.
+- CONTRIBUTING.md says what the release workflow runs.
+- The workflows and the Makefile's container fallback install `jsonschema==4.26.0` instead of the newest jsonschema.
+
+The images are those of v0.8.2 under the new version: the adapters, the upstream pins (OpenLEADR v0.2.8 and v0.1.4, ElaadNL openadr3-client 2.4.2, cB-Sigma openadr v0.2.1), the base images, the container contract (1.5) and the fixtures do not change.
+
+---
+
 ## v0.8.2
 
 **Date:** 2026-11-13

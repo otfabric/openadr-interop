@@ -8,7 +8,7 @@ If you discover a security vulnerability in `openadr-interop`, please report it 
 
 Instead, please email **security@otfabric.io**, or open a private advisory on GitHub (the [Security](https://github.com/otfabric/openadr-interop/security) tab → **Advisories** → **Report a vulnerability**), with a description, steps to reproduce and the affected image tag or digest.
 
-Vulnerabilities in the bundled implementations themselves (OpenLEADR, the ElaadNL openadr3-client, PostgreSQL and their dependencies) belong upstream; report them there, and tell us so that the pin can be moved.
+Vulnerabilities in the bundled implementations themselves (OpenLEADR, the ElaadNL openadr3-client, cB-Sigma openadr, PostgreSQL and their dependencies) belong upstream; report them there, and tell us so that the pin can be moved.
 
 ## Supported Versions
 

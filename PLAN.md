@@ -114,6 +114,14 @@ targeted program or event by a VEN (cB-Sigma/openadr#1); the alpine and
 python base images move to their current digests. The container contract and
 the fixtures do not change.
 
+## v0.8.3 (released)
+
+`versions.yaml` says that `cbsigma` is published, and `scripts/check-versions.sh`
+also checks the base images of the own-stack Dockerfile, that the adapters a
+release publishes are those `versions.yaml` calls published, and the
+openadr3-client pin of `elaadnl`. No image, the container contract or the
+fixtures change.
+
 ## Later
 
 - **A client role for `openleadr`**, wrapping the `openleadr-client` crate:

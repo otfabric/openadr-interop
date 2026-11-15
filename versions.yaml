@@ -3,7 +3,7 @@
 # The Dockerfiles (and adapters/cbsigma/go.mod) are the source of truth for a build:
 # scripts/check-versions.sh fails when this file disagrees with them.
 
-interop_version: "0.8.2"
+interop_version: "0.8.3"
 contract_version: "1.5"        # docs/CONTAINER_CONTRACT.md; documents carry schemaVersion "1.0", the compatible line
 fixture_schema: "1.1"          # fixtures/schema/openadr-fixture.schema.json
 
@@ -85,7 +85,7 @@ implementations:
 
   cbsigma:
     priority: P1
-    status: implemented
+    status: published            # ghcr.io/otfabric/openadr-interop-cbsigma
     upstream: "cB-Sigma openadr"
     repository: "https://github.com/cB-Sigma/openadr"
     module: "github.com/cB-Sigma/openadr"
